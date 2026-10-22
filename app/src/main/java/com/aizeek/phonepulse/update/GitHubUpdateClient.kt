@@ -8,7 +8,12 @@ import javax.net.ssl.HttpsURLConnection
 
 class GitHubUpdateClient {
     suspend fun latestRelease(): GitHubRelease? = withContext(Dispatchers.IO) {
-        val connection = URL("https://api.github.com/repos/${GitHubRelease.REPOSITORY}/releases/latest")
+        // The repository name may contain non-ASCII characters; encode each path
+        // segment (owner, name) so the API URL stays a valid URI.
+        val repoPath = GitHubRelease.REPOSITORY.split("/").joinToString("/") { segment ->
+            java.net.URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
+        }
+        val connection = URL("https://api.github.com/repos/$repoPath/releases/latest")
             .openConnection() as HttpsURLConnection
         try {
             connection.connectTimeout = 15_000

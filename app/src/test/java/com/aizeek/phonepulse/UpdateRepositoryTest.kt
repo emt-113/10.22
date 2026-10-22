@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
 class UpdateRepositoryTest {
     private lateinit var context: Context
     private val release = GitHubRelease(ReleaseVersion(1, 1, 0), "1.1.0", "说明", "phonepulse-1.1.0-release.apk",
-        "https://github.com/t59688/PhonePulse/releases/download/v1.1.0/phonepulse-1.1.0-release.apk", 100)
+        "https://github.com/${GitHubRelease.REPOSITORY}/releases/download/v1.1.0/phonepulse-1.1.0-release.apk", 100)
 
     @Before fun resetPreferences() {
         context = ApplicationProvider.getApplicationContext()

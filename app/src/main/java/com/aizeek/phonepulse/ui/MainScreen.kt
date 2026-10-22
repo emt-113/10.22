@@ -109,6 +109,8 @@ fun MainScreen(
 ) {
     var showUpdates by rememberSaveable { mutableStateOf(false) }
     var showPlanetDetail by remember { mutableStateOf(false) }
+    // Launch cover: brand moment on cold start; tap anywhere to skip.
+    var showLaunchCover by rememberSaveable { mutableStateOf(true) }
     val updateDialogVisible = UpdateHost(viewModel.updates, showUpdates, onClose = { showUpdates = false }, openRequest = updateOpenRequest)
     val context = LocalContext.current
     var currentTab by remember { mutableStateOf(ScreenTab.OVERVIEW) }
@@ -262,6 +264,9 @@ fun MainScreen(
         controller.isAppearanceLightNavigationBars = lightShell
     }
 
+    // The launch cover overlays the (already composed) home surface so the
+    // reveal after its fade is hitch-free.
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         snackbarHost = { SnackbarHost(feedbackHost) },
         topBar = {
@@ -467,5 +472,10 @@ fun MainScreen(
                 )
             }
         }
+    }
+
+    if (showLaunchCover) {
+        com.aizeek.phonepulse.ui.components.LaunchCover(onFinished = { showLaunchCover = false })
+    }
     }
 }

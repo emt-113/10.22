@@ -30,7 +30,7 @@ class GitHubUpdateTest {
     @Test fun `draft prerelease and APK from another repository are rejected`() {
         assertNull(GitHubRelease.parse(json().replace("\"draft\":false", "\"draft\":true")))
         assertNull(GitHubRelease.parse(json().replace("\"prerelease\":false", "\"prerelease\":true")))
-        assertNull(GitHubRelease.parse(json().replace("t59688/PhonePulse/releases/download", "other/project/releases/download")))
+        assertNull(GitHubRelease.parse(json().replace("$repoUrlPath/releases/download", "other/project/releases/download")))
     }
 
     @Test fun `malformed digest and releases with no installable APK are rejected`() {
@@ -38,14 +38,19 @@ class GitHubUpdateTest {
         assertNull(GitHubRelease.parse(json().replace("phonepulse-1.1.0-release.apk", "app-debug.apk")))
     }
 
+    /** GitHub emits percent-encoded download URLs; mirror that for non-ASCII repo names. */
+    private val repoUrlPath = GitHubRelease.REPOSITORY.split("/").joinToString("/") { segment ->
+        java.net.URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
+    }
+
     private fun json() = """{
         "tag_name":"v1.1.0","name":"PhonePulse 1.1.0","body":"更新说明",
         "draft":false,"prerelease":false,
         "assets":[
-          {"name":"app-debug.apk","size":123,"browser_download_url":"https://github.com/t59688/PhonePulse/releases/download/v1.1.0/app-debug.apk"},
+          {"name":"app-debug.apk","size":123,"browser_download_url":"https://github.com/$repoUrlPath/releases/download/v1.1.0/app-debug.apk"},
           {"name":"phonepulse-1.1.0-release.aab","size":123},
           {"name":"phonepulse-1.1.0-release.apk","size":123,"digest":null,
-           "browser_download_url":"https://github.com/t59688/PhonePulse/releases/download/v1.1.0/phonepulse-1.1.0-release.apk"}
+           "browser_download_url":"https://github.com/$repoUrlPath/releases/download/v1.1.0/phonepulse-1.1.0-release.apk"}
         ]
     }"""
 }

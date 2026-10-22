@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
 class UpdateUiTest {
     @get:Rule val compose = createComposeRule()
     private val release = GitHubRelease(ReleaseVersion(1, 1, 0), "新版本", "更新说明", "phonepulse-1.1.0-release.apk",
-        "https://github.com/t59688/PhonePulse/releases/download/v1.1.0/phonepulse-1.1.0-release.apk", 100)
+        "https://github.com/${GitHubRelease.REPOSITORY}/releases/download/v1.1.0/phonepulse-1.1.0-release.apk", 100)
 
     @Test fun `finding update prompts consent and remind later keeps badge without downloading`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()

@@ -44,7 +44,8 @@ data class GitHubRelease(
     }.toString()
 
     companion object {
-        const val REPOSITORY = "t59688/PhonePulse"
+        /** Update channel: the team's own repository (owner/name). Non-ASCII name is URL-encoded per request. */
+        const val REPOSITORY = "emt-113/10.22"
         fun parse(json: String): GitHubRelease? {
             val root = JSONObject(json)
             if (root.optBoolean("draft") || root.optBoolean("prerelease")) return null
