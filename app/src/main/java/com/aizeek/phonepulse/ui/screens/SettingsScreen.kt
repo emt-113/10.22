@@ -147,6 +147,36 @@ fun SettingsScreen(
             onToggleVendorGuide = { expandedVendorGuide = !expandedVendorGuide }
         )
 
+        // Section 2.5: Notification preferences — user chooses how reminders
+        // appear (heads-up / lock screen / sound / vibration) in system settings.
+        item {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = NeonCyan,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "通知与提醒",
+                    color = TextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        item {
+            NotificationPrefsCard()
+        }
+
         // Section 3: About & Local Storage Privacy
         item {
             AboutAppCard()
@@ -447,3 +477,103 @@ private fun AboutAppCard() {
 }
 
 private fun formatBytes(bytes: Long): String = String.format(Locale.getDefault(), "%.1f MB", bytes.coerceAtLeast(0) / 1_048_576.0)
+
+/**
+ * 通知偏好卡（方案二）：不在应用内复刻系统开关，而是引导用户到系统通知设置，
+ * 自行选择悬浮提醒 / 锁屏显示 / 声音 / 振动。常驻状态通知默认静音 + 锁屏可见。
+ */
+@Composable
+private fun NotificationPrefsCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(SurfaceDark)
+            .border(1.dp, BorderDark, RoundedCornerShape(22.dp))
+            .padding(18.dp)
+            .testTag("settings_notification_prefs")
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(NeonCyan.copy(alpha = 0.15f))
+                        .border(1.dp, NeonCyan.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = NeonCyan,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "通知方式由你选择",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "悬浮 · 锁屏 · 声音 · 振动，按你的习惯设置",
+                        color = TextTertiary,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+            Text(
+                text = "常驻状态通知已默认静音不打扰，并支持在锁屏上直接查看当前亮屏/熄屏状态。" +
+                    "教练提醒与充电提醒的通知方式，在系统通知设置里自行开启或关闭。",
+                color = TextSecondary,
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+            Button(
+                onClick = {
+                    val intent = android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    context.startActivity(intent)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = NeonCyan.copy(alpha = 0.14f),
+                    contentColor = NeonCyan
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("open_notification_settings_btn")
+            ) {
+                Text("前往系统通知设置", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+            OutlinedButton(
+                onClick = {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            .putExtra(
+                                android.provider.Settings.EXTRA_CHANNEL_ID,
+                                com.aizeek.phonepulse.intervention.UsageCoachNotifier.CHANNEL_ID
+                            )
+                        context.startActivity(intent)
+                    } else {
+                        context.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("open_coach_channel_btn")
+            ) {
+                Text("使用教练提醒 · 频道直达", fontSize = 13.sp, color = TextSecondary)
+            }
+        }
+    }
+}

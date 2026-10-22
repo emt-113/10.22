@@ -89,9 +89,10 @@ class UsageCoachNotifier(private val context: Context) {
     fun ensureChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = context.getSystemService(NotificationManager::class.java)
-            // Clean up superseded channel ids from earlier iterations (v1/v2).
+            // Clean up superseded channel ids from earlier iterations (v1/v2/v3).
             manager?.deleteNotificationChannel("usage_coach_channel")
             manager?.deleteNotificationChannel("usage_coach_channel_v2")
+            manager?.deleteNotificationChannel("usage_coach_channel_v3")
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 context.getString(R.string.coach_channel_name),
@@ -154,7 +155,9 @@ class UsageCoachNotifier(private val context: Context) {
     companion object {
         // v3: v2 used IMPORTANCE_DEFAULT which some OEM builds (MIUI) deliver
         // silently without heads-up. v3 is IMPORTANCE_HIGH so reminders pop with sound.
-        const val CHANNEL_ID = "usage_coach_channel_v3"
+        // v4: localized channel name (Chinese) — channel names are baked at creation,
+        // so a new id is required for the rename to reach existing installs.
+        const val CHANNEL_ID = "usage_coach_channel_v4"
         const val NOTIFICATION_BASE_ID = 2001
     }
 }

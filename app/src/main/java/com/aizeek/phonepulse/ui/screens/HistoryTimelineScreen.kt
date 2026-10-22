@@ -156,8 +156,8 @@ fun HistoryTimelineScreen(
             ) {
                 listOf(
                     SessionFilter.ALL to "全部状态",
-                    SessionFilter.SCREEN_ON to "仅亮屏使用",
-                    SessionFilter.SCREEN_OFF to "仅熄屏休眠"
+                    SessionFilter.SCREEN_ON to "仅看亮屏阶段",
+                    SessionFilter.SCREEN_OFF to "仅看熄屏阶段"
                 ).forEach { (filter, label) ->
                     val isSelected = selectedFilter == filter
                     val accent = when (filter) {
@@ -251,6 +251,17 @@ fun HistoryTimelineScreen(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 碎片段说明：熄屏期间的系统自亮（AOD/通知脉冲/RTC 闹钟）会
+                // 结束上一段并开始新一段，短碎片段是真实数据的如实呈现。
+                Text(
+                    text = "提示：熄屏期间系统的短暂自亮（息屏显示、通知提醒等）也会被如实记录为独立小段。",
+                    color = TextTertiary,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
             }
         }
 

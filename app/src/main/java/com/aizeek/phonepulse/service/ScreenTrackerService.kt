@@ -302,7 +302,9 @@ class ScreenTrackerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // 仅设置 setContentTitle，不设置 setContentText 和 setStyle，保证通知栏仅占一行高度且单行不换行
+        // 仅设置 setContentTitle，不设置 setContentText 和 setStyle，保证通知栏仅占一行高度且单行不换行。
+        // VISIBILITY_PUBLIC：锁屏（含 AOD）上解锁前即可看到当前状态；
+        // 渠道本身 IMPORTANCE_LOW + setOnlyAlertOnce，静音且不会点亮屏幕。
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(singleLineTitle)
             .setSmallIcon(R.drawable.ic_notification)
@@ -310,6 +312,7 @@ class ScreenTrackerService : Service() {
             .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntent)
             .setShowWhen(false)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .build()
