@@ -23,8 +23,6 @@ import androidx.core.graphics.PathParser
  * rabbit is drawn instead, so Robolectric tests and share-card workers never NPE.
  */
 object RabbitArtwork {
-    private const val SPRITE_RES = "companion_planet_sprite"
-
     // Sprite placement in the 480 design space (content = sphere + ring, 1125x929).
     private const val SPRITE_L = 10f
     private const val SPRITE_T = 30f
@@ -47,10 +45,9 @@ object RabbitArtwork {
         if (sprite != null) return
         synchronized(this) {
             if (sprite != null) return
-            val id = context.resources.getIdentifier(SPRITE_RES, "drawable", context.packageName)
-            if (id != 0) {
-                sprite = BitmapFactory.decodeResource(context.resources, id)
-            }
+            // Direct R reference: resource shrinking would strip a getIdentifier-only
+            // drawable and the sprite would silently fall back to the legacy rabbit.
+            sprite = BitmapFactory.decodeResource(context.resources, com.aizeek.phonepulse.R.drawable.companion_planet_sprite)
         }
     }
 
