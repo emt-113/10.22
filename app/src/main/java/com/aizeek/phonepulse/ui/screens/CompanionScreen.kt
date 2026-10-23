@@ -1,6 +1,5 @@
 package com.aizeek.phonepulse.ui.screens
 
-import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,12 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import com.aizeek.phonepulse.companion.*
 import com.aizeek.phonepulse.data.LiveBatteryInfo
 import com.aizeek.phonepulse.ui.components.*
@@ -43,23 +40,9 @@ fun CompanionScreen(
     onFrame: (String) -> Unit = {}, onRoof: (String) -> Unit = {}
 ) {
     val state = ui.data
-    // The forest world keeps its own dark shell: system bar icons stay light here.
-    val activity = LocalContext.current as? Activity
-    DisposableEffect(Unit) {
-        val window = activity?.window
-        if (window != null) {
-            val controller = WindowCompat.getInsetsController(window, window.decorView)
-            controller.isAppearanceLightStatusBars = false
-            controller.isAppearanceLightNavigationBars = false
-        }
-        onDispose {
-            if (window != null) {
-                val controller = WindowCompat.getInsetsController(window, window.decorView)
-                controller.isAppearanceLightStatusBars = true
-                controller.isAppearanceLightNavigationBars = true
-            }
-        }
-    }
+    // Decode the planet sprite once (ai-generated artwork); legacy rabbit until then.
+    val initContext = androidx.compose.ui.platform.LocalContext.current
+    remember { RabbitArtwork.init(initContext.applicationContext) }
     var page by rememberSaveable { mutableIntStateOf(initialPage) }
     var selectedItem by rememberSaveable { mutableStateOf(initialItem) }
     var selectedLetter by rememberSaveable { mutableStateOf<String?>(null) }

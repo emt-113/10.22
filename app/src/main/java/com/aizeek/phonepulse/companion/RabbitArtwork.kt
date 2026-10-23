@@ -1,16 +1,65 @@
 package com.aizeek.phonepulse.companion
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import androidx.core.graphics.PathParser
 
-/** Geometry generated from thridparty/04_taro_explorer.svg by tools/convert_rabbit.py. */
+/**
+ * The companion avatar: a pearl planet sprite (AI-generated artwork, chroma-keyed
+ * by tools/gen_planet_sprite.py) replacing the legacy vector rabbit.
+ *
+ * Design space stays 480x480 with the same draw() signature, so every caller
+ * (home scene, cabin interior, share card) keeps working unchanged. Accessory
+ * anchors were re-mapped onto the sphere:
+ *   HAT   -> item drawn on top of the sphere
+ *   SCARF -> a belt-like band across the lower sphere
+ *   CAPE  -> a soft disc behind the planet, peeking out at the bottom
+ *   HAND  -> item at the lower-right of the sphere
+ * Until [init] provides the bitmap (or on decode failure) the legacy vector
+ * rabbit is drawn instead, so Robolectric tests and share-card workers never NPE.
+ */
 object RabbitArtwork {
+    private const val SPRITE_RES = "companion_planet_sprite"
+
+    // Sprite placement in the 480 design space (content = sphere + ring, 1125x929).
+    private const val SPRITE_L = 10f
+    private const val SPRITE_T = 30f
+    private const val SPRITE_R = 470f
+    private const val SPRITE_B = 410f
+    // Sphere ellipse measured from the keyed artwork (ratios of the content box).
+    private const val SPHERE_CX = 239f
+    private const val SPHERE_CY = 220f
+    private const val SPHERE_RX = 132f
+    private const val SPHERE_RY = 158f
+
+    @Volatile private var sprite: Bitmap? = null
+    private val bitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true }
+    private val shapePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+    }
+
+    /** Idempotent; call once with an application context before first draw. */
+    fun init(context: Context) {
+        if (sprite != null) return
+        synchronized(this) {
+            if (sprite != null) return
+            val id = context.resources.getIdentifier(SPRITE_RES, "drawable", context.packageName)
+            if (id != 0) {
+                sprite = BitmapFactory.decodeResource(context.resources, id)
+            }
+        }
+    }
+
     private class Layer(val group: String, data: String, val fill: String, val stroke: String, val width: Float) {
         val path = requireNotNull(PathParser.createPathFromPathData(data))
     }
-    private val layers = listOf(
+
+    // Legacy vector rabbit kept as a fallback (bitmap not initialised yet).
+    private val legacyLayers = listOf(
         Layer("ground_shadow", "M84,435a112,10 0 1,0 224,0a112,10 0 1,0 -224,0", "#d9c3ae", "none", 0f),
         Layer("ears_back", "M143 170 C133 134 119 91 128 54 C134 28 156 31 164 59 C173 93 173 137 169 169 Z", "#fff0d1", "#614b3f", 4.2f),
         Layer("ears_back", "M228 173 C245 147 283 125 305 126 C339 129 344 158 325 178 C306 198 266 194 246 187 Z", "#fff0d1", "#614b3f", 4.2f),
@@ -45,10 +94,56 @@ object RabbitArtwork {
         Layer("accessory_hat", "M125 165 Q198 178 271 166 C271 183 129 188 125 165 Z", "#a88b66", "#614b3f", 4.2f),
         Layer("accessory_hat", "M173 134 Q196 129 220 135 L225 146 Q200 141 175 146 Z", "#c4a780", "none", 0f),
     )
+
     fun draw(canvas: Canvas, state: CompanionState, x: Float, y: Float, height: Float) {
         canvas.save(); canvas.translate(x, y); canvas.scale(height / 480f, height / 480f)
+        val bmp = sprite
+        if (bmp == null) {
+            drawLegacy(canvas, state)
+            canvas.restore()
+            return
+        }
+        // Ground shadow under the floating planet.
+        shapePaint.style = Paint.Style.FILL
+        shapePaint.color = Color.parseColor("#d9c3ae")
+        canvas.drawOval(SPHERE_CX - 118f, 398f, SPHERE_CX + 118f, 418f, shapePaint)
+        // Cape behind the planet: a soft disc peeking out at the bottom.
+        state.equipped["CAPE"]?.let { cape ->
+            shapePaint.color = Color.parseColor(capeColor(cape))
+            canvas.drawOval(SPHERE_CX - SPHERE_RX - 16f, SPHERE_CY - SPHERE_RY + 30f,
+                SPHERE_CX + SPHERE_RX + 16f, SPHERE_CY + SPHERE_RY + 34f, shapePaint)
+        }
+        // The planet sprite itself.
+        canvas.drawBitmap(bmp, null, android.graphics.RectF(SPRITE_L, SPRITE_T, SPRITE_R, SPRITE_B), bitmapPaint)
+        // Hat on top of the sphere (all hat ids route through the shared item art).
+        state.equipped["HAT"]?.let {
+            canvas.save(); canvas.translate(SPHERE_CX - 75f, SPHERE_CY - SPHERE_RY - 46f)
+            CompanionArtwork.item(canvas, it, 150f); canvas.restore()
+        }
+        // Scarf as a belt-like band across the lower sphere.
+        state.equipped["SCARF"]?.let {
+            shapePaint.style = Paint.Style.FILL
+            shapePaint.color = Color.parseColor(if (it == "rose_scarf") "#c58e87" else "#83a48a")
+            canvas.drawRoundRect(SPHERE_CX - SPHERE_RX + 6f, 298f, SPHERE_CX + SPHERE_RX - 6f, 330f, 16f, 16f, shapePaint)
+            canvas.drawRoundRect(SPHERE_CX + SPHERE_RX - 52f, 322f, SPHERE_CX + SPHERE_RX - 20f, 374f, 12f, 12f, shapePaint)
+        }
+        // Hand item at the lower-right of the sphere.
+        state.equipped["HAND"]?.let {
+            canvas.save(); canvas.translate(SPHERE_CX + 62f, SPHERE_CY + 96f)
+            CompanionArtwork.item(canvas, it, 88f); canvas.restore()
+        }
+        canvas.restore()
+    }
+
+    private fun capeColor(id: String): String = when (id) {
+        "sage_cape" -> "#83a48a"
+        "rose_cape" -> "#c58e87"
+        else -> "#e1ac63"
+    }
+
+    private fun drawLegacy(canvas: Canvas, state: CompanionState) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
-        layers.forEach { layer ->
+        legacyLayers.forEach { layer ->
             if (layer.group == "accessory_hat" && state.equipped["HAT"] != "explorer_hat") return@forEach
             if (layer.group == "clothes_cape" && state.equipped["CAPE"] == null) return@forEach
             if (layer.fill != "none") {
@@ -79,6 +174,5 @@ object RabbitArtwork {
         state.equipped["HAND"]?.let {
             canvas.save(); canvas.translate(258f, 347f); CompanionArtwork.item(canvas, it, 88f); canvas.restore()
         }
-        canvas.restore()
     }
 }
