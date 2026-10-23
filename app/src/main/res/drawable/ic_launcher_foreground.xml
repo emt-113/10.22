@@ -1,63 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ScreenRhythm pearl planet: brand sphere (mint -> ice blue -> pearl pink ->
-     lavender journey, same as the home hero material) with a tilted glass
-     orbit, a satellite bead and star dust. Content stays inside the adaptive
-     icon safe zone (center 66dp circle). -->
+<!-- Pausia mark: pearl liquid-glass open ring. The band wraps from -15deg to
+     285deg (screen coords, gap at the upper right), pearlescent white with a
+     mint wash toward the lower-left and a mint droplet near the upper tip.
+     Content stays inside the adaptive icon safe zone (center 66dp circle). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Planet sphere -->
-    <path android:pathData="M54,34 a20,20 0 1,0 0.01,0 Z">
+    <!-- Open ring band -->
+    <path android:pathData="M79.11,47.27 A26,26 0 1,1 60.73,28.89 L57.62,40.48 A14,14 0 1,0 67.53,50.37 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
-                android:startX="36" android:startY="36"
-                android:endX="72" android:endY="72">
-                <item android:offset="0.0" android:color="#FF8FDCBE" />
-                <item android:offset="0.34" android:color="#FFA9DDEC" />
-                <item android:offset="0.67" android:color="#FFF7CFE0" />
-                <item android:offset="1.0" android:color="#FFC9B4EE" />
+                android:startX="78" android:startY="30"
+                android:endX="32" android:endY="76">
+                <item android:offset="0.0" android:color="#FFFDFDFB" />
+                <item android:offset="0.42" android:color="#FFF2F3EC" />
+                <item android:offset="0.75" android:color="#FFDFEDDF" />
+                <item android:offset="1.0" android:color="#FFC9E4D0" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- Key light on the upper-left of the sphere -->
-    <path android:pathData="M46,36 a10,10 0 1,0 0.01,0 Z">
+    <!-- Soft mint pool inside the band, lower-left -->
+    <path android:pathData="M37.5,63.5 m-9.5,0 a9.5,9.5 0 1,0 19,0 a9.5,9.5 0 1,0 -19,0">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
-                android:centerX="46" android:centerY="46"
-                android:gradientRadius="11">
-                <item android:offset="0.0" android:color="#99FFFFFF" />
-                <item android:offset="0.55" android:color="#33FFFFFF" />
-                <item android:offset="1.0" android:color="#00FFFFFF" />
+                android:centerX="37.5" android:centerY="63.5"
+                android:gradientRadius="10">
+                <item android:offset="0.0" android:color="#66AEDCC0" />
+                <item android:offset="1.0" android:color="#00AEDCC0" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- Pearl rim -->
+    <!-- Glassy specular arcs -->
     <path
-        android:pathData="M54,34 a20,20 0 1,0 0.01,0 Z"
+        android:pathData="M40.2,36.9 A21.5,21.5 0 0,1 66.9,32.6"
         android:strokeColor="#B3FFFFFF"
-        android:strokeWidth="0.9" />
-    <!-- Tilted glass orbit + satellite -->
-    <group
-        android:rotation="-24"
-        android:pivotX="54"
-        android:pivotY="54">
-        <path
-            android:pathData="M27,54 a27,9.5 0 1,0 54,0 a27,9.5 0 1,0 -54,0"
-            android:strokeColor="#8CFFFFFF"
-            android:strokeWidth="1.6" />
-        <path android:pathData="M81,54 m-1.9,0 a1.9,1.9 0 1,0 3.8,0 a1.9,1.9 0 1,0 -3.8,0"
-            android:fillColor="#FFFFFFFF" />
-    </group>
-    <!-- Moon dot + star dust -->
-    <path android:pathData="M76,32 m-2.2,0 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0"
-        android:fillColor="#E6FFFFFF" />
-    <path android:pathData="M33,39 m-1.1,0 a1.1,1.1 0 1,0 2.2,0 a1.1,1.1 0 1,0 -2.2,0"
-        android:fillColor="#8CFFFFFF" />
-    <path android:pathData="M72,69 m-0.9,0 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0"
-        android:fillColor="#73FFFFFF" />
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M70.2,71.9 A21.5,21.5 0 0,1 33.4,64.6"
+        android:strokeColor="#59FFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+    <!-- Mint droplet at the upper tip -->
+    <path android:pathData="M61.0,29.3 m-3.3,0 a3.3,3.3 0 1,0 6.6,0 a3.3,3.3 0 1,0 -6.6,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="60" android:centerY="28.3"
+                android:gradientRadius="4.6">
+                <item android:offset="0.0" android:color="#FFEAF7EE" />
+                <item android:offset="0.62" android:color="#FFBFE2CB" />
+                <item android:offset="1.0" android:color="#FF9CCFAF" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

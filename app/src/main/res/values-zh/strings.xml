@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">屏律星球</string>
+    <string name="app_name">息律</string>
     <string name="notification_channel_name">屏幕状态监测</string>
     <string name="notification_channel_desc">实时显示屏幕亮起与熄屏记录状态</string>
     <string name="coach_channel_name">使用教练提醒</string>
     <string name="coach_channel_desc">每日亮屏预算与连续使用提醒</string>
-    <string name="service_running_title">屏律星球 守护中</string>
+    <string name="service_running_title">息律 守护中</string>
     <string name="service_running_content">正在精确记录亮屏与熄屏时长</string>
     <string name="update_channel_name">应用更新</string>
     <string name="update_notification_ready">%1$s %2$s 已下载</string>

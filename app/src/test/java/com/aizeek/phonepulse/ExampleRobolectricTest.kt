@@ -21,14 +21,14 @@ class ExampleRobolectricTest {
   }
 
   @Test
-  fun `app name follows the ScreenRhythm Planet brand across locales`() {
-    // Rebrand 2026-10-23: zh locales resolve 屏律星球, others fall back to the
-    // default (English) name.
-    assertEquals("ScreenRhythm Planet", appNameFor(Locale.US))
-    assertEquals("ScreenRhythm Planet", appNameFor(Locale.JAPAN))
-    assertEquals("屏律星球", appNameFor(Locale.SIMPLIFIED_CHINESE))
-    assertEquals("屏律星球", appNameFor(Locale.TRADITIONAL_CHINESE))
-    assertEquals("屏律星球", appNameFor(Locale.forLanguageTag("zh-HK")))
-    assertEquals("屏律星球", appNameFor(Locale.forLanguageTag("zh-Hans-SG")))
+  fun `app name follows the Pausia brand across locales`() {
+    // Rebrand 2026-10-23: zh locales resolve 息律, others fall back to the
+    // default (English) name Pausia.
+    assertEquals("Pausia", appNameFor(Locale.US))
+    assertEquals("Pausia", appNameFor(Locale.JAPAN))
+    assertEquals("息律", appNameFor(Locale.SIMPLIFIED_CHINESE))
+    assertEquals("息律", appNameFor(Locale.TRADITIONAL_CHINESE))
+    assertEquals("息律", appNameFor(Locale.forLanguageTag("zh-HK")))
+    assertEquals("息律", appNameFor(Locale.forLanguageTag("zh-Hans-SG")))
   }
 }
