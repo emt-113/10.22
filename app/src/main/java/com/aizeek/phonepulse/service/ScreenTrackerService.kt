@@ -227,7 +227,22 @@ class ScreenTrackerService : Service() {
             }
         }
         monitorNotificationJob = serviceScope.launch {
-            monitor.state.collect { updateNotification() }
+            var lastPostElapsedMs = 0L
+            monitor.state.collect {
+                // Live-timer freshness only matters while the user can see the
+                // notification. While the screen is off, every re-post refreshes
+                // the AOD/lockscreen notification card and HyperOS pulses it
+                // visibly ("闪一闪" per battery sample) — throttle to at most one
+                // update per minute. Screen-on keeps the existing live cadence.
+                val now = android.os.SystemClock.elapsedRealtime()
+                val minIntervalMs = if (ScreenStateHolder.isScreenOn.value) 0L else 60_000L
+                if (now - lastPostElapsedMs >= minIntervalMs) {
+                    lastPostElapsedMs = now
+                    updateNotification()
+                } else {
+                    Log.d("ScreenTracker", "notification update throttled (screen off)")
+                }
+            }
         }
     }
 
@@ -249,6 +264,7 @@ class ScreenTrackerService : Service() {
         try {
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager
             notificationManager?.notify(NOTIFICATION_ID, buildNotification())
+            Log.d("ScreenTracker", "notification updated")
         } catch (e: Exception) {
             e.printStackTrace()
         }
