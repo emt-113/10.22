@@ -1,6 +1,9 @@
 package com.aizeek.phonepulse.ui.components
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,12 +13,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,7 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,15 +40,15 @@ import com.aizeek.phonepulse.ui.theme.BorderDark
 import com.aizeek.phonepulse.ui.theme.NeonCyan
 import com.aizeek.phonepulse.ui.theme.NeonEmerald
 import com.aizeek.phonepulse.ui.theme.SurfaceDark
+import com.aizeek.phonepulse.ui.theme.SurfaceElevatedDark
 import com.aizeek.phonepulse.ui.theme.TextPrimary
 import com.aizeek.phonepulse.ui.theme.TextSecondary
 import com.aizeek.phonepulse.ui.theme.TextTertiary
-import com.aizeek.phonepulse.ui.theme.AmberWarning
+import kotlinx.coroutines.delay
 
 /**
- * Settings card for the usage coach (intervention). All knobs are runtime-tunable:
- * for a demo, set the budget to e.g. 1 minute and the continuous limit to 1 minute
- * to see both alerts fire within a couple of minutes.
+ * Settings card for the usage coach (intervention). All knobs are runtime-tunable
+ * and auto-save on change: no explicit save action is needed.
  */
 @Composable
 fun UsageCoachCard() {
@@ -63,20 +68,45 @@ fun UsageCoachCard() {
         savedTick = true
     }
 
+    // Auto-save feedback: flash a confirmation for a moment after any change.
+    LaunchedEffect(savedTick) {
+        if (savedTick) {
+            delay(2000)
+            savedTick = false
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .clip(RoundedCornerShape(26.dp))
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(
+                        SurfaceElevatedDark.copy(alpha = 0.95f),
+                        SurfaceDark
+                    )
+                )
+            )
+            .border(1.dp, BorderDark, RoundedCornerShape(26.dp))
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Alarm, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(20.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(NeonCyan.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Alarm, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(18.dp))
+                }
                 Text("使用教练", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
             Switch(checked = enabled, onCheckedChange = {
@@ -85,8 +115,8 @@ fun UsageCoachCard() {
             })
         }
         Text(
-            "预算与连续提醒相互独立，各有每日冷却；提醒走系统通知。",
-            color = TextTertiary, fontSize = 11.sp
+            "预算 = 每天累计使用上限，连续 = 单次连续使用上限；达到后发通知提醒休息，各自每天最多提醒一次。",
+            color = TextTertiary, fontSize = 12.sp, lineHeight = 16.sp
         )
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -94,7 +124,7 @@ fun UsageCoachCard() {
                 value = budget,
                 onValueChange = {
                     budget = it.filter { c -> c.isDigit() }.take(4)
-                    persist() // live-save: no button dependency for demos
+                    persist() // auto-save on change
                 },
                 label = { Text("每日预算(分)") },
                 placeholder = { Text("留空关闭", color = TextTertiary, fontSize = 11.sp) },
@@ -126,7 +156,7 @@ fun UsageCoachCard() {
             Text("短熄屏宽限（合并判定）", color = TextSecondary, fontSize = 13.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(15, 30, 60).forEach { sec ->
-                    TextButton(onClick = { grace = sec }, enabled = grace != sec) {
+                    TextButton(onClick = { grace = sec; persist() }, enabled = grace != sec) {
                         Text(
                             "${sec}s",
                             color = if (grace == sec) NeonEmerald else TextSecondary,
@@ -138,19 +168,20 @@ fun UsageCoachCard() {
             }
         }
 
+        // Auto-save indicator (replaces the old demo tip + manual save button).
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                if (savedTick) "已保存，立即生效" else "演示技巧：预算填 2、连续填 1，几分钟内即可看到两级提醒",
-                color = if (savedTick) NeonEmerald else TextTertiary,
-                fontSize = 11.sp,
-                modifier = Modifier.weight(1f)
-            )
-            TextButton(onClick = { persist() }) { Text("保存", color = NeonCyan, fontWeight = FontWeight.Bold) }
+            AnimatedVisibility(visible = savedTick) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = NeonEmerald, modifier = Modifier.size(13.dp))
+                    Text("已自动保存，立即生效", color = NeonEmerald, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                }
+            }
         }
+
         // MIUI gates heads-up + sound at the app level; give users a direct way out.
         TextButton(onClick = {
             val intent = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)

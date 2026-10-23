@@ -199,6 +199,7 @@ fun HistoryTimelineScreen(
                     .border(1.dp, BorderDark, RoundedCornerShape(18.dp))
                     .padding(14.dp)
             ) {
+                Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
@@ -252,16 +253,17 @@ fun HistoryTimelineScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                // 碎片段说明：熄屏期间的系统自亮（AOD/通知脉冲/RTC 闹钟）会
-                // 结束上一段并开始新一段，短碎片段是真实数据的如实呈现。
-                Text(
-                    text = "提示：熄屏期间系统的短暂自亮（息屏显示、通知提醒等）也会被如实记录为独立小段。",
-                    color = TextTertiary,
-                    fontSize = 10.sp,
-                    lineHeight = 14.sp
-                )
+                    // 碎片段说明：熄屏期间的系统自亮（AOD/通知脉冲/RTC 闹钟）会
+                    // 结束上一段并开始新一段，短碎片段是真实数据的如实呈现。
+                    Text(
+                        text = "提示：熄屏时系统偶尔自动亮一下（如通知提醒），会记成单独的小段，属正常现象。",
+                        color = TextTertiary,
+                        fontSize = 10.sp,
+                        lineHeight = 14.sp
+                    )
+                }
             }
         }
 

@@ -177,6 +177,18 @@ private fun coverage(cycle: BatteryCycle): String {
     return if (total > 0) "${percent(cycle.measuredMs / total * 100)}%" else "暂无测量"
 }
 
+/** Human-readable explanation of where the current prediction comes from. */
+private fun estimatesSourceText(source: String?, charging: Boolean): String? = when (source) {
+    "SESSION" -> "依据本次充电实测速度，随采样动态刷新。"
+    "SOC_HISTORY" -> if (charging)
+        "依据近 30 天同电量段的历史充电速度；本次充电数据积累后估算会自动校准。"
+    else "依据近 30 天历史耗电速度，随采样动态刷新。"
+    "SOC_HISTORY_SESSION" -> "结合本次实测与近 30 天历史速度，随采样动态刷新。"
+    "MAH_HISTORY" -> "依据近 30 天实测耗电速度，随采样动态刷新。"
+    "HISTORY" -> "依据近 30 天历史耗电速度，随采样动态刷新。"
+    else -> null
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BatteryMeasurementCard(state: BatteryMonitorUiState) {
@@ -822,10 +834,7 @@ fun BatteryMaintenanceCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.Bolt,
                         iconTint = ElectricVioletLight,
-                        accentColor = ElectricVioletLight,
-                        subtext = {
-                            Text("距目标 ${state.settings.chargeTargetPct}%：${duration(state.estimates.toTargetMs)}", color = TextTertiary, fontSize = 11.sp)
-                        }
+                        accentColor = ElectricVioletLight
                     )
                     BentoTile(
                         label = "距充满 100%",
@@ -833,10 +842,18 @@ fun BatteryMaintenanceCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.BatteryChargingFull,
                         iconTint = NeonEmerald,
-                        accentColor = NeonEmerald,
-                        subtext = {
-                            Text("距充满：${duration(state.estimates.toFullMs)}", color = TextTertiary, fontSize = 11.sp)
-                        }
+                        accentColor = NeonEmerald
+                    )
+                }
+                val noEstimate = state.estimates.toTargetMs == null && state.estimates.toFullMs == null
+                val note = if (noEstimate) "正在积累本次充电数据，稍后会自动给出预估时间。"
+                else estimatesSourceText(state.estimates.source, charging = true)
+                note?.let {
+                    Text(
+                        text = it,
+                        color = TextTertiary,
+                        fontSize = 10.sp,
+                        lineHeight = 14.sp
                     )
                 }
             } else if (charging == false) {
@@ -847,10 +864,7 @@ fun BatteryMaintenanceCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.WbSunny,
                         iconTint = NeonCyan,
-                        accentColor = NeonCyan,
-                        subtext = {
-                            Text("持续亮屏剩余：${duration(state.estimates.screenOnRemainingMs)}", color = TextTertiary, fontSize = 10.sp)
-                        }
+                        accentColor = NeonCyan
                     )
                     BentoTile(
                         label = "持续待机",
@@ -858,10 +872,7 @@ fun BatteryMaintenanceCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.Nightlight,
                         iconTint = ElectricVioletLight,
-                        accentColor = ElectricVioletLight,
-                        subtext = {
-                            Text("持续待机剩余：${duration(state.estimates.screenOffRemainingMs)}", color = TextTertiary, fontSize = 10.sp)
-                        }
+                        accentColor = ElectricVioletLight
                     )
                     BentoTile(
                         label = "综合日常",
@@ -869,12 +880,16 @@ fun BatteryMaintenanceCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.Speed,
                         iconTint = NeonEmerald,
-                        accentColor = NeonEmerald,
-                        subtext = {
-                            Text("按近期混合使用：${duration(state.estimates.mixedRemainingMs)}", color = TextTertiary, fontSize = 10.sp)
-                        }
+                        accentColor = NeonEmerald
                     )
                 }
+                Text(
+                    text = estimatesSourceText(state.estimates.source, charging = false)
+                        ?: "正在积累耗电数据，稍后会自动给出预估时间。",
+                    color = TextTertiary,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
             } else {
                 MonitorCallout(
                     text = "预计时间：等待有效充放电测量",
@@ -912,6 +927,7 @@ private fun BatterySettingsDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+                Text("不确定的项目保持默认即可，不影响正常使用。", color = TextSecondary, fontSize = 12.sp)
                 Column(
                     modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -924,7 +940,10 @@ private fun BatterySettingsDialog(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth().testTag("battery_design_input")
                     )
-                    Text("使用设备厂商标称的电池容量，不确定时可留空。", color = TextTertiary, fontSize = 11.sp)
+                    Text(
+                        "设备官方标称的电池容量，会影响健康度估算。不确定就留空，App 会尝试自动识别（系统读数或内置机型表）。",
+                        color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                    )
 
                     OutlinedTextField(
                         value = target,
@@ -933,6 +952,10 @@ private fun BatterySettingsDialog(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth().testTag("battery_target_input")
+                    )
+                    Text(
+                        "充电到这个电量时提醒你，避免长时间满电；建议设 80%，有利于延长电池寿命。",
+                        color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -945,10 +968,20 @@ private fun BatterySettingsDialog(
                     }
 
                     if (advanced) {
-                        Text("仅在确认设备读数口径后调整。更改校准会开始新会话，旧记录不会重新计算。", color = TextTertiary, fontSize = 11.sp)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = invert, onCheckedChange = { invert = it })
-                            Text("反转电流方向", color = TextPrimary, fontSize = 13.sp)
+                        Text(
+                            "多数手机不需要动这几项；只有当电流读数明显不对（方向相反或大小偏差固定倍数）时才调整。修改后会开始新的记录会话，旧记录不会重新计算。",
+                            color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                        )
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = invert, onCheckedChange = { invert = it })
+                                Text("反转电流方向", color = TextPrimary, fontSize = 13.sp)
+                            }
+                            Text(
+                                "如果充电时显示负数、放电时显示正数（方向反了），勾上即可纠正。",
+                                color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
                         }
                         OutlinedTextField(
                             value = scale,
@@ -958,7 +991,10 @@ private fun BatterySettingsDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth().testTag("battery_scale_input")
                         )
-                        Text("请按设备电芯规格选择。", color = TextTertiary, fontSize = 11.sp)
+                        Text(
+                            "正常保持 1.0；仅当电流数值整体偏大或偏小固定倍数时才调整。",
+                            color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                        )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = cells == 1, onClick = { cells = 1 })
                             Text("不换算", color = TextPrimary, fontSize = 13.sp)
@@ -966,6 +1002,10 @@ private fun BatterySettingsDialog(
                             RadioButton(selected = cells == 2, onClick = { cells = 2 })
                             Text("双电芯 ×2", color = TextPrimary, fontSize = 13.sp)
                         }
+                        Text(
+                            "普通手机选『不换算』；少数内置双电芯的机型读数需 ×2 才等于整块电池，不确定就选不换算。",
+                            color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                        )
                     }
                 }
             }
