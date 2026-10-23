@@ -474,6 +474,16 @@ fun MainScreen(
         }
     }
 
+    // Return-gift moment: a rest long enough earns stardust; shown once per arrival.
+    val returnGift by com.aizeek.phonepulse.intervention.ReturnGiftCenter.gift()
+        .collectAsStateWithLifecycle()
+    returnGift?.let { gift ->
+        com.aizeek.phonepulse.ui.components.ReturnGiftCard(
+            gift = gift,
+            onDismiss = { com.aizeek.phonepulse.intervention.ReturnGiftCenter.clear() }
+        )
+    }
+
     if (showLaunchCover) {
         com.aizeek.phonepulse.ui.components.LaunchCover(onFinished = { showLaunchCover = false })
     }

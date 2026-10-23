@@ -5,9 +5,15 @@ package com.aizeek.phonepulse.intervention
  *
  * Pure Kotlin and stateless per call: the caller owns persistence of fired keys
  * (per-day reset) and passes them back in, so every decision is unit-testable and
- * replayable. Notification cadence is deliberately frugal per review guidance:
- * budget alerts fire at most twice per day (warn + reached); the continuous-usage
- * alert has its own once-per-day key.
+ * replayable.
+ *
+ * Reminder cadence (user-requested contract, covered by tests):
+ *   - Budget: a single 80% warn per day, then once the budget is REACHED the
+ *     coach nags — one reminder per extra screen-on minute until the screen
+ *     goes off (screen-on accumulation pauses while off, so the nag pauses
+ *     with it and resumes only when usage keeps growing).
+ *   - Continuous: one reminder per minute over the limit within the session;
+ *     a real screen-off (>= grace) ends the session and the nag with it.
  *
  * Statistical contract (fixed rule, covered by tests): a screen-off gap shorter
  * than [CONTINUOUS_GRACE_MS] keeps the continuous session alive; a gap of exactly
@@ -48,17 +54,18 @@ object UsageCoachEngine {
         val budget = config.dailyBudgetMinutes
         if (budget == null || budget <= 0 || todayScreenOnMinutes < 0) return null
         val warnKey = "budget_warn_$budget"
-        val reachedKey = "budget_reached_$budget"
-        val reachedPct = todayScreenOnMinutes * 100.0 / budget
         if (todayScreenOnMinutes >= budget) {
-            // Reaching 100% always summarizes, even if the 80% warn was skipped
-            // (e.g. a tiny budget crossed both thresholds between heartbeats).
-            if (reachedKey in firedKeys) return null
+            // Over budget = nag mode: one reminder per extra screen-on minute.
+            // The key embeds the minute value, so the same minute never repeats
+            // while a new minute always fires — "every minute until screen off".
+            val nagKey = "budget_reached_${budget}_$todayScreenOnMinutes"
+            if (nagKey in firedKeys) return null
+            val over = todayScreenOnMinutes - budget
             return CoachAlert(
                 type = AlertType.BUDGET_REACHED,
-                title = "今日亮屏预算已用完",
-                message = "今日亮屏 $todayScreenOnMinutes 分钟（预算 $budget 分钟）。明天可以试试提前一点收尾。",
-                cooldownKey = reachedKey
+                title = "今日亮屏已超预算",
+                message = "今日亮屏 $todayScreenOnMinutes 分钟，已超预算 $over 分钟。放下手机休息一下，息屏即可结束提醒。",
+                cooldownKey = nagKey
             )
         }
         val warnAt = budget * config.budgetWarnPct / 100.0
@@ -77,8 +84,8 @@ object UsageCoachEngine {
     /**
      * Continuous usage decision. [currentSessionMinutes] is the elapsed span of the
      * ongoing continuous session (short screen-off gaps included), 0 when idle.
-     * Cooldown is once per day per limit — NOT per minute step, so a 2-hour session
-     * never spams.
+     * Nags once per minute over the limit; the key embeds the minute value, so a
+     * long session keeps reminding instead of staying silent after the first hit.
      */
     fun continuousAlert(
         currentSessionMinutes: Int,
@@ -87,11 +94,12 @@ object UsageCoachEngine {
     ): CoachAlert? {
         val limit = config.continuousLimitMinutes
         if (limit == null || limit <= 0 || currentSessionMinutes < limit) return null
-        val key = "continuous_$limit"
-        return if (key in firedKeys) null else CoachAlert(
+        val key = "continuous_${limit}_$currentSessionMinutes"
+        if (key in firedKeys) return null
+        return CoachAlert(
             type = AlertType.CONTINUOUS_LIMIT,
             title = "已连续使用 $currentSessionMinutes 分钟",
-            message = "休息一下眼睛：远眺 20 秒，或起身倒杯水。会话在下次较长熄屏后重新计算。",
+            message = "该休息啦：远眺 20 秒，或起身倒杯水。本轮每分钟会再提醒一次，息屏即可结束。",
             cooldownKey = key
         )
     }

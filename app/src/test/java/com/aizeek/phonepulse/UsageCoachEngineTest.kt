@@ -40,12 +40,37 @@ class UsageCoachEngineTest {
         assertEquals(AlertType.BUDGET_REACHED, alert!!.type)
         // Reaching 100% summarizes regardless: tiny budgets may cross both thresholds.
         assertNotNull(budgetAlert(240, config, emptySet()))
-        assertNull(budgetAlert(240, config, fired + "budget_reached_240")) // already fired
+        assertNull(budgetAlert(240, config, fired + "budget_reached_240_240")) // same minute already fired
     }
 
     @Test
     fun `warn does not repeat on same day`() {
         assertNull(budgetAlert(200, config, setOf("budget_warn_240")))
+    }
+
+    @Test
+    fun `over budget nags once per extra minute until screen off`() {
+        val first = budgetAlert(240, config, emptySet())!!
+        assertEquals("budget_reached_240_240", first.cooldownKey)
+        // Same minute must not repeat within a heartbeat cadence.
+        assertNull(budgetAlert(240, config, setOf(first.cooldownKey)))
+        // Each extra minute of screen-on time fires a fresh reminder...
+        val second = budgetAlert(241, config, setOf(first.cooldownKey))!!
+        assertEquals("budget_reached_240_241", second.cooldownKey)
+        val third = budgetAlert(242, config, setOf(first.cooldownKey, second.cooldownKey))!!
+        assertEquals("budget_reached_240_242", third.cooldownKey)
+        // ...and the message reports how far over the budget we are.
+        assert(second.message.contains("超预算 1 分钟"))
+    }
+
+    @Test
+    fun `nag pauses while accumulation is paused (screen off)`() {
+        // Screen off pauses accumulation: the minute value stops advancing, so
+        // with the current minute's key already fired nothing re-fires until the
+        // user actually uses another full minute after coming back.
+        val fired = setOf("budget_reached_240_270")
+        assertNull(budgetAlert(270, config, fired))
+        assertNotNull(budgetAlert(271, config, fired))
     }
 
     @Test
@@ -58,14 +83,17 @@ class UsageCoachEngineTest {
     // ---- continuous usage ----
 
     @Test
-    fun `continuous limit triggers at threshold with once-per-day cooldown`() {
-        val alert = continuousAlert(45, config, emptySet())
+    fun `continuous limit nags every minute over the limit within a session`() {
+        val alert = continuousAlert(45, config, emptySet())!!
         assertEquals(AlertType.CONTINUOUS_LIMIT, alert!!.type)
-        assertEquals("continuous_45", alert.cooldownKey)
+        assertEquals("continuous_45_45", alert.cooldownKey)
         assertNull(continuousAlert(44, config, emptySet()))
-        // Same limit later in the same session must NOT re-fire (no per-minute spam).
-        assertNull(continuousAlert(90, config, setOf("continuous_45")))
-        assertNull(continuousAlert(120, config, setOf("continuous_45")))
+        // Same minute never repeats...
+        assertNull(continuousAlert(45, config, setOf("continuous_45_45")))
+        // ...but the next minute over the limit fires a fresh reminder.
+        val later = continuousAlert(90, config, setOf("continuous_45_45"))!!
+        assertEquals("continuous_45_90", later.cooldownKey)
+        assertNull(continuousAlert(90, config, setOf("continuous_45_45", "continuous_45_90")))
     }
 
     @Test

@@ -19,6 +19,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import com.aizeek.phonepulse.update.UpdateRepository
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import com.aizeek.phonepulse.intervention.ReturnGiftCenter
+import com.aizeek.phonepulse.intervention.ReturnGiftStore
 import com.aizeek.phonepulse.service.ScreenTrackerService
 import com.aizeek.phonepulse.ui.MainScreen
 import com.aizeek.phonepulse.ui.theme.BgDark
@@ -26,6 +28,34 @@ import com.aizeek.phonepulse.ui.theme.PhonePulseTheme
 
 class MainActivity : ComponentActivity() {
     private var updateOpenRequest by mutableIntStateOf(0)
+    private val giftStore by lazy { ReturnGiftStore(applicationContext) }
+
+    override fun onPause() {
+        super.onPause()
+        // Return-gift bookkeeping: remember when the user left the app so the
+        // next arrival can reward a real resting gap with stardust.
+        try {
+            giftStore.recordLeave()
+            android.util.Log.i(TAG, "leave recorded")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        try {
+            val gift = giftStore.onArrive()
+            android.util.Log.i(TAG, "arrive check: gift=${gift != null}")
+            gift?.let { ReturnGiftCenter.post(it) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private companion object {
+        const val TAG = "ReturnGift"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -14,7 +14,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.aizeek.phonepulse.MainActivity
 import com.aizeek.phonepulse.R
+import com.aizeek.phonepulse.data.UsageStatsRepository
+import com.aizeek.phonepulse.util.TimeFormatter
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -196,6 +200,14 @@ class UsageCoachController(
         if (screenOn) tracker.onScreenOn(SystemClockElapsed())
         lastScreenOn = screenOn
         heartbeatJob = scope.launch {
+            settings.refresh()
+            rollDayIfNeeded()
+            // First open / process restart: adopt the system's authoritative
+            // screen-on total for today and evaluate immediately, so the home
+            // card never sits on a stale "0 分钟 / 未加载" for the first minute.
+            backfillFromSystemStats()
+            feedInternal(isScreenOnNow(), SystemClockElapsed())
+            evaluate()
             while (isActive) {
                 delay(HEARTBEAT_MS)
                 // Refresh BEFORE the enabled check: the UI card saves into
@@ -206,6 +218,51 @@ class UsageCoachController(
                 feedInternal(isScreenOnNow(), SystemClockElapsed())
                 evaluate()
             }
+        }
+    }
+
+    /**
+     * Adopt the system's interactive-time total for today when it is ahead of our
+     * own accumulation (fresh install, process death, OEM-killed service). The
+     * system value is ground truth and already spans up to "now", so adopting it
+     * and resuming delta accumulation from here never double-counts.
+     */
+    private suspend fun backfillFromSystemStats() {
+        val sysMinutes = withContext(Dispatchers.Default) { systemScreenOnMinutesToday() }
+            ?: return
+        if (sysMinutes > accumulatedMinutes) {
+            accumulatedMs = sysMinutes * 60_000L
+            accumulatedMinutes = sysMinutes
+            saveAccumulated()
+        }
+    }
+
+    private fun systemScreenOnMinutesToday(): Int? {
+        return try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+            if (!UsageStatsRepository(context).hasUsageStatsPermission()) return null
+            val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as?
+                android.app.usage.UsageStatsManager ?: return null
+            val now = System.currentTimeMillis()
+            val start = TimeFormatter.getStartOfDay(now)
+            val events = usm.queryEvents(start, now) ?: return null
+            val event = android.app.usage.UsageEvents.Event()
+            var onMs = 0L
+            var lastOnMs = -1L
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                when (event.eventType) {
+                    android.app.usage.UsageEvents.Event.SCREEN_INTERACTIVE -> lastOnMs = event.timeStamp
+                    android.app.usage.UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
+                        if (lastOnMs > 0) onMs += (event.timeStamp - lastOnMs).coerceAtLeast(0)
+                        lastOnMs = -1L
+                    }
+                }
+            }
+            if (lastOnMs > 0) onMs += (now - lastOnMs).coerceAtLeast(0)
+            ((onMs / 60_000L).toInt()).takeIf { it > 0 }
+        } catch (t: Throwable) {
+            null
         }
     }
 
