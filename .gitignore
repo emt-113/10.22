@@ -25,5 +25,3 @@ my-upload-key.jks
 app/build
 build/
 thridparty/
-# WorkBuddy agent workspace (never publish)
-.workbuddy/

@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">PhonePulse</string>
+    <string name="app_name">屏律星球</string>
     <string name="notification_channel_name">螢幕狀態監測</string>
     <string name="notification_channel_desc">即時顯示螢幕亮起與關閉的紀錄狀態</string>
     <string name="coach_channel_name">使用教練提醒</string>
     <string name="coach_channel_desc">每日亮屏預算與連續使用提醒</string>
-    <string name="service_running_title">PhonePulse 守護中</string>
+    <string name="service_running_title">屏律星球 守護中</string>
     <string name="service_running_content">正在記錄螢幕開啟與關閉時間</string>
     <string name="update_channel_name">應用程式更新</string>
     <string name="update_notification_ready">%1$s %2$s 已下載</string>

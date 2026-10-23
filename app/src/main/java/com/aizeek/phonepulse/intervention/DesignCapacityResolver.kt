@@ -24,7 +24,9 @@ object DesignCapacityResolver {
      * figure for the model, marked as such in the UI.
      */
     val KNOWN_MODELS: Map<String, Double> = mapOf(
-        "23117RK66C" to 5000.0 // Redmi K70 Pro (manet), nominal 5000 mAh / 120W
+        "23117RK66C" to 5000.0, // Redmi K70 Pro (manet), nominal 5000 mAh / 120W
+        "23113RKC6C" to 5000.0, // Redmi K70 Pro alternate model string (public datasheet)
+        "Redmi K70 Pro" to 5000.0 // market name Build.MODEL variant
     )
 
     fun modelTableCapacity(model: String?): Double? =

@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">PhonePulse</string>
+    <string name="app_name">ScreenRhythm Planet</string>
     <string name="notification_channel_name">Screen State Monitor</string>
     <string name="notification_channel_desc">Shows real-time screen awake and sleep tracking status</string>
     <string name="coach_channel_name">Usage Coach Reminders</string>
     <string name="coach_channel_desc">Daily screen-on budget and continuous usage reminders</string>
-    <string name="service_running_title">PhonePulse is running</string>
+    <string name="service_running_title">ScreenRhythm Planet is running</string>
     <string name="service_running_content">Tracking screen-on and screen-off time</string>
     <string name="update_channel_name">App updates</string>
     <string name="update_notification_ready">%1$s %2$s downloaded</string>
