@@ -550,30 +550,49 @@ private fun NotificationPrefsCard() {
             ) {
                 Text("前往系统通知设置", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
-            OutlinedButton(
-                onClick = {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-                            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
-                            .putExtra(
-                                android.provider.Settings.EXTRA_CHANNEL_ID,
-                                com.aizeek.phonepulse.intervention.UsageCoachNotifier.CHANNEL_ID
-                            )
-                        context.startActivity(intent)
-                    } else {
-                        context.startActivity(
-                            android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
-                        )
-                    }
-                },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("open_coach_channel_btn")
-            ) {
-                Text("使用教练提醒 · 频道直达", fontSize = 13.sp, color = TextSecondary)
-            }
+            // Per-channel shortcuts: every OEM buries notification settings somewhere
+            // different, so jump straight into each channel's own system page.
+            NotificationChannelJumpButton(
+                "使用教练提醒 · 频道直达",
+                com.aizeek.phonepulse.intervention.UsageCoachNotifier.CHANNEL_ID,
+                "open_coach_channel_btn"
+            )
+            NotificationChannelJumpButton(
+                "充电目标提醒 · 频道直达",
+                com.aizeek.phonepulse.battery.BatteryChargeAlarm.CHANNEL,
+                "open_charge_channel_btn"
+            )
+            NotificationChannelJumpButton(
+                "屏幕状态监测 · 频道直达",
+                com.aizeek.phonepulse.service.ScreenTrackerService.CHANNEL_ID,
+                "open_monitor_channel_btn"
+            )
         }
+    }
+}
+
+@Composable
+private fun NotificationChannelJumpButton(label: String, channelId: String, tag: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    OutlinedButton(
+        onClick = {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val intent = android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
+                context.startActivity(intent)
+            } else {
+                context.startActivity(
+                    android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                )
+            }
+        },
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(tag)
+    ) {
+        Text(label, fontSize = 13.sp, color = TextSecondary)
     }
 }
