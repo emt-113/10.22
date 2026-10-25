@@ -59,6 +59,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
@@ -91,6 +92,7 @@ import com.aizeek.phonepulse.data.LiveBatteryInfo
 import com.aizeek.phonepulse.intervention.BatteryHealthFacade
 import com.aizeek.phonepulse.intervention.DesignCapacityResolver
 import com.aizeek.phonepulse.intervention.PlanetEngine
+import com.aizeek.phonepulse.intervention.ReturnGiftEngine
 import com.aizeek.phonepulse.intervention.UsageCoachController
 import com.aizeek.phonepulse.ui.theme.BevelAmber
 import com.aizeek.phonepulse.ui.theme.BevelCard
@@ -137,10 +139,18 @@ fun PlanetHomeSection(
     isServiceRunning: Boolean,
     battery: LiveBatteryInfo,
     monitor: BatteryMonitorUiState,
+    lastScreenOffDurationMs: Long?,
     onClickPlanet: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val live by UsageCoachController.liveState().collectAsStateWithLifecycle()
+    // Re-derived on every recomposition (live state beats every 5s while the screen
+    // is on), so the 60s welcome window closes without a dedicated timer.
+    val restArrival = heroRestArrival(
+        nowMs = System.currentTimeMillis(),
+        wakeAtMs = stateStartTimeMs,
+        lastScreenOffMs = lastScreenOffDurationMs
+    )
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -155,6 +165,7 @@ fun PlanetHomeSection(
             sessionMinutes = live.sessionMinutes,
             continuousLimitMinutes = live.continuousLimitMinutes,
             isScreenOn = isScreenOn,
+            restArrival = restArrival,
             onClick = onClickPlanet
         )
 
@@ -162,7 +173,8 @@ fun PlanetHomeSection(
             budgetMinutes = live.budgetMinutes,
             limitMinutes = live.continuousLimitMinutes,
             sessionMinutes = live.sessionMinutes,
-            todayMinutes = live.todayMinutes
+            todayMinutes = live.todayMinutes,
+            restArrival = restArrival
         )
         TodayScreenCard(
             isScreenOn = isScreenOn,
@@ -235,6 +247,7 @@ private fun PlanetHero(
     sessionMinutes: Int,
     continuousLimitMinutes: Int?,
     isScreenOn: Boolean,
+    restArrival: RestArrival?,
     onClick: () -> Unit
 ) {
     val progress = if (budgetMinutes != null && budgetMinutes > 0) {
@@ -251,13 +264,15 @@ private fun PlanetHero(
     // Coach live state is collected once in PlanetHomeSection and passed down as
     // scalars: three separate collectors (here + RestTipCard) used to triple the
     // recomposition work on every 15s heartbeat with zero visual benefit.
-    val actualVisualState = when {
-        !isScreenOn -> PlanetVisualState.RESTING
-        continuousLimitMinutes != null && sessionMinutes >= continuousLimitMinutes -> PlanetVisualState.SUGGEST_REST
-        budgetMinutes != null && budgetMinutes > 0 && todayMinutes * 100 >= budgetMinutes * PlanetEngine.SUGGESTION_BUDGET_HIGH_PCT -> PlanetVisualState.SUGGEST_REST
-        stage != PlanetEngine.Stage.SPROUT -> PlanetVisualState.GOOD
-        else -> PlanetVisualState.STEADY
-    }
+    val actualVisualState = planetHeroState(
+        isScreenOn = isScreenOn,
+        restArrival = restArrival,
+        continuousLimitMinutes = continuousLimitMinutes,
+        sessionMinutes = sessionMinutes,
+        budgetMinutes = budgetMinutes,
+        todayMinutes = todayMinutes,
+        stage = stage
+    )
     var demoState by remember { mutableStateOf<PlanetVisualState?>(null) }
     val visualState = demoState ?: actualVisualState
 
@@ -344,8 +359,8 @@ private fun PlanetHero(
                 modifier = Modifier.fillMaxWidth().height(236.dp).onSizeChanged { canvasSize = it }
                     .drawBehind {
                         animatedLayer?.let { drawImage(it) }
-                        drawPlanetProgress(progress = if (progress != null) animatedProgress else null, over = over, phase = orbitPhase, prebuiltBrush = progressBrush)
-                    drawPlanetOrbitShimmer(orbitPhase, tiltPhase, visualState)
+                        drawPlanetProgress(progress = if (progress != null) animatedProgress else null, over = over, phase = orbitPhase, prebuiltBrush = progressBrush, planetDisk = surfaceSpherePath)
+                    drawPlanetOrbitShimmer(orbitPhase, tiltPhase, visualState, planetDisk = surfaceSpherePath)
                     drawPlanetSurfaceFlow(orbitPhase, visualState, spherePath = surfaceSpherePath, flowPath = surfaceFlowPath, prebuiltBrush = surfaceFlowBrush)
                     }.clickable(onClick = onClick).testTag("planet_hero")
             )
@@ -402,6 +417,43 @@ internal enum class PlanetVisualState(val title: String, val color: Color, val o
     GOOD("节奏良好", Color(0xFF27BDA9), 8500),
     SUGGEST_REST("建议休息", Color(0xFFD4A958), 24000),
     RESTING("休息中", Color(0xFF8984C8), 36000)
+}
+
+/** A real rest (>= ReturnGiftEngine.MIN_GAP_MINUTES) the user just came back from. */
+internal data class RestArrival(val minutes: Int)
+
+/** How long the violet "刚休息回来" moment stays visible after the screen wakes. */
+internal const val REST_ARRIVAL_WINDOW_MS = 60_000L
+
+/**
+ * Pure rest-arrival check: the last completed screen-off gap (short absorbed
+ * gaps never write it) must be a real rest AND the screen must have woken
+ * within the welcome window. Wall-clock based, matching ScreenStateHolder.
+ */
+internal fun heroRestArrival(nowMs: Long, wakeAtMs: Long, lastScreenOffMs: Long?): RestArrival? {
+    val gap = lastScreenOffMs ?: return null
+    if (gap < ReturnGiftEngine.MIN_GAP_MINUTES * 60_000L) return null
+    val sinceWake = nowMs - wakeAtMs
+    if (sinceWake < 0L || sinceWake > REST_ARRIVAL_WINDOW_MS) return null
+    return RestArrival(minutes = (gap / 60_000L).toInt())
+}
+
+/** Hero state priority: welcome-back moment first, then the existing ladder. */
+internal fun planetHeroState(
+    isScreenOn: Boolean,
+    restArrival: RestArrival?,
+    continuousLimitMinutes: Int?,
+    sessionMinutes: Int,
+    budgetMinutes: Int?,
+    todayMinutes: Int,
+    stage: PlanetEngine.Stage
+): PlanetVisualState = when {
+    restArrival != null -> PlanetVisualState.RESTING
+    !isScreenOn -> PlanetVisualState.RESTING
+    continuousLimitMinutes != null && sessionMinutes >= continuousLimitMinutes -> PlanetVisualState.SUGGEST_REST
+    budgetMinutes != null && budgetMinutes > 0 && todayMinutes * 100 >= budgetMinutes * PlanetEngine.SUGGESTION_BUDGET_HIGH_PCT -> PlanetVisualState.SUGGEST_REST
+    stage != PlanetEngine.Stage.SPROUT -> PlanetVisualState.GOOD
+    else -> PlanetVisualState.STEADY
 }
 
 /**
@@ -880,15 +932,133 @@ private object PlanetLayerCache {
     }
 
     /**
-     * Live half: the static budget arc (real data, never animated) plus the
-     * budget-lane comet — a small pearl satellite with a soft trailing glow
-     * that circles continuously, so the middle orbit always reads as moving.
+     * Arc-length parametrization for the budget-lane ellipse (rx = 1.66r, ry = 0.44r).
+     * drawArc sweeps by parametric angle, but on a squashed ellipse equal angles are
+     * not equal orbit lengths — the flat ends are "cheap", so a naive 360°·progress
+     * sweep shows only ~half of the true percentage at low progress. The table below
+     * inverts travelled arc length back to a sweep angle. The mapping is
+     * scale-invariant (both axes scale with r), so it is built once per process.
+     */
+    internal object OrbitArc {
+        private const val RX = 1.66f
+        private const val RY = 0.44f
+        private const val STEPS = 4096
+        private const val LOOKUP = 1024
+
+        /** sweepTable[k] = sweep angle whose travelled length is k/LOOKUP of the full orbit. */
+        private val sweepTable: FloatArray = buildSweepTable()
+
+        fun sweepFor(fraction: Float): Float {
+            val u = fraction.coerceIn(0f, 1f) * LOOKUP
+            val i = u.toInt().coerceAtMost(LOOKUP - 1)
+            return sweepTable[i] + (sweepTable[i + 1] - sweepTable[i]) * (u - i)
+        }
+
+        private fun buildSweepTable(): FloatArray {
+            // ds/dθ has a 180° period, so integrating the speed from 0 covers the
+            // arc that starts at 180° (the lane's start point, the left tip).
+            // Trapezoid cumulative length; speed at θ=0 is exactly RY.
+            val step = (2.0 * Math.PI / STEPS).toFloat()
+            val cum = FloatArray(STEPS + 1)
+            var prev = RY
+            for (i in 1..STEPS) {
+                val t = i * step
+                val cur = kotlin.math.sqrt((RX * RX * kotlin.math.sin(t) * kotlin.math.sin(t) +
+                    RY * RY * kotlin.math.cos(t) * kotlin.math.cos(t)).toDouble()).toFloat()
+                cum[i] = cum[i - 1] + (prev + cur) * 0.5f * step
+                prev = cur
+            }
+            val total = cum[STEPS]
+            val table = FloatArray(LOOKUP + 1)
+            var cursor = 0
+            for (k in 0..LOOKUP) {
+                val target = total * k / LOOKUP
+                while (cursor < STEPS && cum[cursor + 1] < target) cursor++
+                val lo = cum[cursor]
+                val hi = if (cursor < STEPS) cum[cursor + 1] else lo
+                val span = hi - lo
+                val t = if (span > 0f) ((target - lo) / span).coerceIn(0f, 1f) else 0f
+                table[k] = (cursor + t) * (360f / STEPS)
+            }
+            table[LOOKUP] = 360f
+            return table
+        }
+    }
+
+    /** Draws one stroke arc segment; brush wins over color when present. */
+    private fun androidx.compose.ui.graphics.drawscope.DrawScope.orbitSegmentArc(
+        startAngle: Float,
+        sweepAngle: Float,
+        topLeft: Offset,
+        arcSize: Size,
+        style: Stroke,
+        alpha: Float,
+        brush: Brush?,
+        color: Color
+    ) {
+        if (brush != null) {
+            drawArc(
+                brush = brush, startAngle = startAngle, sweepAngle = sweepAngle, useCenter = false,
+                topLeft = topLeft, size = arcSize, style = style, alpha = alpha
+            )
+        } else {
+            drawArc(
+                color = color, startAngle = startAngle, sweepAngle = sweepAngle, useCenter = false,
+                topLeft = topLeft, size = arcSize, style = style, alpha = alpha
+            )
+        }
+    }
+
+    /**
+     * Draws one orbit-lane arc split at the front/behind boundary: the parametric
+     * 180°..360° half is clipped to outside the planet disk (reads as passing
+     * behind the planet, like the static glass orbit), the 0°..180° half draws
+     * over the planet. Segments are cut at 0°/180°/360° so a trail straddling
+     * the boundary renders correctly on both sides.
+     */
+    private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrbitArc(
+        startAngle: Float,
+        sweepAngle: Float,
+        topLeft: Offset,
+        arcSize: Size,
+        style: Stroke,
+        planetDisk: Path?,
+        alpha: Float = 1f,
+        brush: Brush? = null,
+        color: Color = Color.Unspecified
+    ) {
+        var seg = startAngle.mod(360f)
+        var remaining = sweepAngle
+        while (remaining > 0.01f) {
+            val behind = seg >= 180f
+            val run = if (behind) minOf(remaining, 360f - seg) else minOf(remaining, 180f - seg)
+            if (behind && planetDisk != null) {
+                clipPath(planetDisk, ClipOp.Difference) {
+                    orbitSegmentArc(seg, run, topLeft, arcSize, style, alpha, brush, color)
+                }
+            } else {
+                orbitSegmentArc(seg, run, topLeft, arcSize, style, alpha, brush, color)
+            }
+            seg = (seg + run).mod(360f)
+            remaining -= run
+        }
+    }
+
+    /**
+     * Live half: the budget arc (arc-length parametrized so its visible extent
+     * equals the true percentage) plus the budget-lane comet — a small pearl
+     * satellite with a soft trailing glow that circles continuously, so the
+     * middle orbit always reads as moving. Orbit halves that pass behind the
+     * planet (parametric angles 180°..360°) are clipped to outside the planet
+     * disk, exactly like the static glass orbit, so the lane no longer cuts
+     * across the planet's face.
      */
     private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPlanetProgress(
         progress: Float?,
         over: Boolean,
         phase: Float,
-        prebuiltBrush: Brush?
+        prebuiltBrush: Brush?,
+        planetDisk: Path?
     ) {
         val w = size.width
         val h = size.height
@@ -908,7 +1078,8 @@ private object PlanetLayerCache {
 
         rotate(degrees = -18f, pivot = Offset(cx, cy)) {
             if (progress != null && progress > 0f) {
-                val sweep = 360f * progress.coerceIn(0f, 1f)
+                // Arc-length sweep: equal percentages travel equal orbit lengths.
+                val sweep = OrbitArc.sweepFor(progress)
                 // Steady state reuses the hoisted brush; the fallback only runs on
                 // the very first frame before the size state has landed.
                 val progressBrush = prebuiltBrush ?: Brush.linearGradient(
@@ -917,24 +1088,24 @@ private object PlanetLayerCache {
                     end = Offset(cx + orbitRx, cy)
                 )
                 // Soft glow underlay so the arc feels like light, not a stroke.
-                drawArc(
-                    brush = progressBrush,
+                drawOrbitArc(
                     startAngle = 180f,
                     sweepAngle = sweep,
-                    useCenter = false,
                     topLeft = laneTopLeft,
-                    size = laneSize,
+                    arcSize = laneSize,
                     style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round),
-                    alpha = 0.12f
+                    planetDisk = planetDisk,
+                    alpha = 0.12f,
+                    brush = progressBrush
                 )
-                drawArc(
-                    brush = progressBrush,
+                drawOrbitArc(
                     startAngle = 180f,
                     sweepAngle = sweep,
-                    useCenter = false,
                     topLeft = laneTopLeft,
-                    size = laneSize,
-                    style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round)
+                    arcSize = laneSize,
+                    style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round),
+                    planetDisk = planetDisk,
+                    brush = progressBrush
                 )
                 // Real-progress tick: a small quiet marker at the budget point.
                 val tick = Math.toRadians((180f + sweep).toDouble())
@@ -942,40 +1113,55 @@ private object PlanetLayerCache {
                     cx + orbitRx * cos(tick).toFloat(),
                     cy + orbitRy * sin(tick).toFloat()
                 )
-                drawCircle(color = bead.copy(alpha = 0.12f), radius = 4.dp.toPx(), center = tickPoint)
-                drawCircle(color = bead, radius = 1.7.dp.toPx(), center = tickPoint)
+                if (sweep <= 180f && planetDisk != null) {
+                    clipPath(planetDisk, ClipOp.Difference) {
+                        drawCircle(color = bead.copy(alpha = 0.12f), radius = 4.dp.toPx(), center = tickPoint)
+                        drawCircle(color = bead, radius = 1.7.dp.toPx(), center = tickPoint)
+                    }
+                } else {
+                    drawCircle(color = bead.copy(alpha = 0.12f), radius = 4.dp.toPx(), center = tickPoint)
+                    drawCircle(color = bead, radius = 1.7.dp.toPx(), center = tickPoint)
+                }
             }
             // Budget-lane comet: a small pearl satellite with a soft trailing
             // glow. It runs 1.16x the tilted rings' speed, is pearl white so
             // it never blends into the mint progress arc, and is drawn even
             // without a budget so the lane never looks dead.
             val lanePhase = phase * 1.16f
-            drawArc(
-                color = bead.copy(alpha = 0.20f),
+            drawOrbitArc(
                 startAngle = lanePhase - 36f,
                 sweepAngle = 36f,
-                useCenter = false,
                 topLeft = laneTopLeft,
-                size = laneSize,
-                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                arcSize = laneSize,
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+                planetDisk = planetDisk,
+                color = bead.copy(alpha = 0.20f)
             )
-            drawArc(
-                color = bead.copy(alpha = 0.38f),
+            drawOrbitArc(
                 startAngle = lanePhase - 15f,
                 sweepAngle = 15f,
-                useCenter = false,
                 topLeft = laneTopLeft,
-                size = laneSize,
-                style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round)
+                arcSize = laneSize,
+                style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round),
+                planetDisk = planetDisk,
+                color = bead.copy(alpha = 0.38f)
             )
             val theta = Math.toRadians(lanePhase.toDouble())
             val satellite = Offset(
                 cx + orbitRx * cos(theta).toFloat(),
                 cy + orbitRy * sin(theta).toFloat()
             )
-            drawCircle(bead.copy(alpha = 0.15f), 6.5.dp.toPx(), satellite)
-            drawCircle(Color(0xFFEFFBF8).copy(alpha = 0.92f), 2.4.dp.toPx(), satellite)
-            drawCircle(Color.White, 1.dp.toPx(), satellite)
+            if (lanePhase.mod(360f) >= 180f && planetDisk != null) {
+                clipPath(planetDisk, ClipOp.Difference) {
+                    drawCircle(bead.copy(alpha = 0.15f), 6.5.dp.toPx(), satellite)
+                    drawCircle(Color(0xFFEFFBF8).copy(alpha = 0.92f), 2.4.dp.toPx(), satellite)
+                    drawCircle(Color.White, 1.dp.toPx(), satellite)
+                }
+            } else {
+                drawCircle(bead.copy(alpha = 0.15f), 6.5.dp.toPx(), satellite)
+                drawCircle(Color(0xFFEFFBF8).copy(alpha = 0.92f), 2.4.dp.toPx(), satellite)
+                drawCircle(Color.White, 1.dp.toPx(), satellite)
+            }
         }
     }
 
@@ -1000,7 +1186,8 @@ private fun HeroStat(label: String, value: String, valueColor: Color = BevelText
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPlanetOrbitShimmer(
     phase: Float,
     tiltPhase: Float,
-    state: PlanetVisualState
+    state: PlanetVisualState,
+    planetDisk: Path?
 ) {
     val m = minOf(size.width, size.height)
     val cx = size.width / 2f
@@ -1026,70 +1213,85 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPlanetOrbitShim
         val ringTopLeft = Offset(cx - rx, cy - ry)
         val ringSize = Size(rx * 2f, ry * 2f)
         // Wide, very soft halo keeps the big ring present without a bright line.
-        drawArc(
-            color = state.color.copy(alpha = alpha * 0.08f),
+        drawOrbitArc(
             startAngle = 0f,
             sweepAngle = 360f,
-            useCenter = false,
             topLeft = ringTopLeft,
-            size = ringSize,
-            style = Stroke(width = 9.dp.toPx(), cap = StrokeCap.Round)
+            arcSize = ringSize,
+            style = Stroke(width = 9.dp.toPx(), cap = StrokeCap.Round),
+            planetDisk = planetDisk,
+            color = state.color.copy(alpha = alpha * 0.08f)
         )
         // Fine main ring: clearly quieter than the budget lane's progress arc.
-        drawArc(
-            color = state.color.copy(alpha = if (state == PlanetVisualState.GOOD) 0.34f else 0.26f),
+        drawOrbitArc(
             startAngle = 0f,
             sweepAngle = 360f,
-            useCenter = false,
             topLeft = ringTopLeft,
-            size = ringSize,
-            style = Stroke(width = ringWidth.dp.toPx(), cap = StrokeCap.Round)
+            arcSize = ringSize,
+            style = Stroke(width = ringWidth.dp.toPx(), cap = StrokeCap.Round),
+            planetDisk = planetDisk,
+            color = state.color.copy(alpha = if (state == PlanetVisualState.GOOD) 0.34f else 0.26f)
         )
         // Travelling glint trails its satellite, echoing the budget-lane comet.
-        drawArc(
-            color = state.color.copy(alpha = alpha * 0.55f),
+        drawOrbitArc(
             startAngle = phase - 34f,
             sweepAngle = 34f,
-            useCenter = false,
             topLeft = ringTopLeft,
-            size = ringSize,
-            style = Stroke(width = (ringWidth + 1f).dp.toPx(), cap = StrokeCap.Round)
+            arcSize = ringSize,
+            style = Stroke(width = (ringWidth + 1f).dp.toPx(), cap = StrokeCap.Round),
+            planetDisk = planetDisk,
+            color = state.color.copy(alpha = alpha * 0.55f)
         )
         val theta = Math.toRadians(phase.toDouble())
         val point = Offset(cx + rx * kotlin.math.cos(theta).toFloat(), cy + ry * kotlin.math.sin(theta).toFloat())
-        drawCircle(state.color.copy(alpha = 0.12f), 7.dp.toPx(), point)
-        drawCircle(state.color.copy(alpha = 0.24f), 3.6.dp.toPx(), point)
-        drawCircle(state.color.copy(alpha = alpha), 2.1.dp.toPx(), point)
-        drawCircle(Color.White.copy(alpha = 0.92f), 0.9.dp.toPx(), point)
+        if (phase.mod(360f) >= 180f && planetDisk != null) {
+            clipPath(planetDisk, ClipOp.Difference) {
+                drawCircle(state.color.copy(alpha = 0.12f), 7.dp.toPx(), point)
+                drawCircle(state.color.copy(alpha = 0.24f), 3.6.dp.toPx(), point)
+                drawCircle(state.color.copy(alpha = alpha), 2.1.dp.toPx(), point)
+                drawCircle(Color.White.copy(alpha = 0.92f), 0.9.dp.toPx(), point)
+            }
+        } else {
+            drawCircle(state.color.copy(alpha = 0.12f), 7.dp.toPx(), point)
+            drawCircle(state.color.copy(alpha = 0.24f), 3.6.dp.toPx(), point)
+            drawCircle(state.color.copy(alpha = alpha), 2.1.dp.toPx(), point)
+            drawCircle(Color.White.copy(alpha = 0.92f), 0.9.dp.toPx(), point)
+        }
     }
     rotate(degrees = 22f - tilt * 0.65f, pivot = Offset(cx, cy)) {
         val rx2 = rx * 0.84f
         val ry2 = ry * 0.75f
         val innerTopLeft = Offset(cx - rx2, cy - ry2)
         val innerSize = Size(rx2 * 2f, ry2 * 2f)
-        drawArc(
-            color = state.color.copy(alpha = alpha * 0.20f),
+        drawOrbitArc(
             startAngle = 0f,
             sweepAngle = 360f,
-            useCenter = false,
             topLeft = innerTopLeft,
-            size = innerSize,
-            style = Stroke(width = 1.4.dp.toPx(), cap = StrokeCap.Round)
+            arcSize = innerSize,
+            style = Stroke(width = 1.4.dp.toPx(), cap = StrokeCap.Round),
+            planetDisk = planetDisk,
+            color = state.color.copy(alpha = alpha * 0.20f)
         )
         // Small white runner with its own shorter trail, 1.3x speed.
         val head = phase * 1.3f
-        drawArc(
-            color = Color.White.copy(alpha = alpha * 0.40f),
+        drawOrbitArc(
             startAngle = head - 26f,
             sweepAngle = 26f,
-            useCenter = false,
             topLeft = innerTopLeft,
-            size = innerSize,
-            style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+            arcSize = innerSize,
+            style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round),
+            planetDisk = planetDisk,
+            color = Color.White.copy(alpha = alpha * 0.40f)
         )
         val theta2 = Math.toRadians(head.toDouble())
         val runner = Offset(cx + rx2 * kotlin.math.cos(theta2).toFloat(), cy + ry2 * kotlin.math.sin(theta2).toFloat())
-        drawCircle(Color.White.copy(alpha = alpha * 0.80f), 1.6.dp.toPx(), runner)
+        if (head.mod(360f) >= 180f && planetDisk != null) {
+            clipPath(planetDisk, ClipOp.Difference) {
+                drawCircle(Color.White.copy(alpha = alpha * 0.80f), 1.6.dp.toPx(), runner)
+            }
+        } else {
+            drawCircle(Color.White.copy(alpha = alpha * 0.80f), 1.6.dp.toPx(), runner)
+        }
     }
 }
 
@@ -1135,11 +1337,14 @@ private fun RestTipCard(
     budgetMinutes: Int?,
     limitMinutes: Int?,
     sessionMinutes: Int,
-    todayMinutes: Int
+    todayMinutes: Int,
+    restArrival: RestArrival?
 ) {
     val budget = budgetMinutes
     val limit = limitMinutes
     val (title, body) = when {
+        restArrival != null ->
+            "欢迎回来" to "你离开了 ${restArrival.minutes} 分钟，星球刚陪着你休息了一会儿。"
         limit != null && sessionMinutes >= limit ->
             "该休息一下了" to "你已经连续使用 ${sessionMinutes} 分钟，建议放下手机，休息放松眼睛。"
         budget != null && todayMinutes >= budget ->

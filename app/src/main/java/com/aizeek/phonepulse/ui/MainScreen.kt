@@ -402,6 +402,7 @@ fun MainScreen(
                                     isServiceRunning = isServiceRunning,
                                     battery = liveBattery,
                                     monitor = batteryMonitor,
+                                    lastScreenOffDurationMs = lastScreenOffDurationMs,
                                     onClickPlanet = { showPlanetDetail = true },
                                     onOpenSettings = { currentTab = ScreenTab.SETTINGS }
                                 )

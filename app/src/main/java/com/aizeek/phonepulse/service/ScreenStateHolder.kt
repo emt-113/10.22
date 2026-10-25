@@ -189,7 +189,8 @@ object ScreenStateHolder {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
         val isScreenCurrentlyOn = powerManager?.isInteractive ?: true
         _isScreenOn.value = isScreenCurrentlyOn
-        _stateStartTime.value = System.currentTimeMillis()
+        val initAt = System.currentTimeMillis()
+        _stateStartTime.value = initAt
 
         scope.launch(Dispatchers.IO) {
             try {
@@ -201,6 +202,17 @@ object ScreenStateHolder {
                 }
                 if (lastOn != null) {
                     _lastScreenOnDuration.value = lastOn.durationMs
+                }
+                // The DB lookup is async, so "now" above is only an approximation of
+                // the wake time. When the screen is (still) on, the end of the last
+                // SCREEN_OFF session IS the real wake moment — adopt it unless a real
+                // transition has already overwritten the state meanwhile. Consumers
+                // like the planet's rest-arrival window need the true wake time.
+                if (isScreenCurrentlyOn && lastOff != null &&
+                    _isScreenOn.value && suspendedOffAtMs == null &&
+                    _stateStartTime.value == initAt
+                ) {
+                    _stateStartTime.value = lastOff.endTime
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
