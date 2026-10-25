@@ -16,6 +16,7 @@ import com.aizeek.phonepulse.MainActivity
 import com.aizeek.phonepulse.R
 import com.aizeek.phonepulse.data.UsageStatsRepository
 import com.aizeek.phonepulse.util.TimeFormatter
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,6 +24,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -78,13 +82,21 @@ class UsageCoachSettings(context: Context) {
             .putInt(KEY_GRACE, graceSeconds.coerceIn(5, 300))
             .apply()
         current = read()
+        changeCounter.value += 1
     }
 
-    private companion object {
-        const val KEY_ENABLED = "enabled"
-        const val KEY_BUDGET = "budget_minutes"
-        const val KEY_CONTINUOUS = "continuous_limit_minutes"
-        const val KEY_GRACE = "grace_seconds"
+    companion object {
+        private const val KEY_ENABLED = "enabled"
+        private const val KEY_BUDGET = "budget_minutes"
+        private const val KEY_CONTINUOUS = "continuous_limit_minutes"
+        private const val KEY_GRACE = "grace_seconds"
+
+        // Cross-instance change signal: the UI card and the service controller hold
+        // separate instances of this class, so a save reaches the controller through
+        // this shared flow — it reacts within the reaction delay instead of waiting
+        // for the next heartbeat.
+        private val changeCounter = MutableStateFlow(0)
+        val changes: StateFlow<Int> = changeCounter
     }
 }
 
@@ -175,9 +187,14 @@ class UsageCoachNotifier(private val context: Context) {
 class UsageCoachController(
     private val context: Context,
     private val settings: UsageCoachSettings,
-    private val notifier: UsageCoachNotifier
+    private val notifier: UsageCoachNotifier,
+    // Injectable so tests keep the backfill hop inside virtual time.
+    private val backfillDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val dayStore = PlanetDayStore(context)
+    // The service heartbeats on Dispatchers.Default while screen broadcasts arrive
+    // on the main thread; every mutation of coach state is serialized on [lock].
+    private val lock = Any()
     private var tracker = newTracker()
     private var dayKey: String = todayKey()
     private var accumulatedMs: Long = readAccumulated() * 60_000L
@@ -187,6 +204,7 @@ class UsageCoachController(
     private var sessionAlertedKeys: MutableSet<String> = mutableSetOf()
     private var lastAlertedSessionStart: Long? = null
     private var heartbeatJob: Job? = null
+    private var reactionJob: Job? = null
     private var lastScreenOn: Boolean = isScreenOnNow()
 
     private fun newTracker() = ContinuousSessionTracker(settings.graceMs)
@@ -201,22 +219,39 @@ class UsageCoachController(
         lastScreenOn = screenOn
         heartbeatJob = scope.launch {
             settings.refresh()
-            rollDayIfNeeded()
+            synchronized(lock) { rollDayIfNeeded() }
             // First open / process restart: adopt the system's authoritative
             // screen-on total for today and evaluate immediately, so the home
             // card never sits on a stale "0 分钟 / 未加载" for the first minute.
             backfillFromSystemStats()
-            feedInternal(isScreenOnNow(), SystemClockElapsed())
-            evaluate()
-            while (isActive) {
-                delay(HEARTBEAT_MS)
-                // Refresh BEFORE the enabled check: the UI card saves into
-                // SharedPreferences from a different instance of this class.
-                settings.refresh()
-                if (!settings.current.enabled) continue
-                rollDayIfNeeded()
+            synchronized(lock) {
                 feedInternal(isScreenOnNow(), SystemClockElapsed())
                 evaluate()
+            }
+            while (isActive) {
+                delay(HEARTBEAT_MS)
+                // Refresh BEFORE evaluating: the UI card saves into
+                // SharedPreferences from a different instance of this class.
+                settings.refresh()
+                synchronized(lock) {
+                    rollDayIfNeeded()
+                    feedInternal(isScreenOnNow(), SystemClockElapsed())
+                    evaluate()
+                }
+            }
+        }
+        // Instant reaction path (no heartbeat wait): a UI-card save is debounced to
+        // coalesce per-keystroke writes into one evaluation, and UI resume ticks go
+        // straight through. Evaluating even when disabled keeps the home hero
+        // mirroring the current settings instead of freezing on the last snapshot.
+        reactionJob = scope.launch {
+            merge(UsageCoachSettings.changes.drop(1), refreshTick.drop(1)).collectLatest {
+                delay(REACTION_DELAY_MS)
+                settings.refresh()
+                synchronized(lock) {
+                    rollDayIfNeeded()
+                    evaluate()
+                }
             }
         }
     }
@@ -228,12 +263,14 @@ class UsageCoachController(
      * and resuming delta accumulation from here never double-counts.
      */
     private suspend fun backfillFromSystemStats() {
-        val sysMinutes = withContext(Dispatchers.Default) { systemScreenOnMinutesToday() }
+        val sysMinutes = withContext(backfillDispatcher) { systemScreenOnMinutesToday() }
             ?: return
-        if (sysMinutes > accumulatedMinutes) {
-            accumulatedMs = sysMinutes * 60_000L
-            accumulatedMinutes = sysMinutes
-            saveAccumulated()
+        synchronized(lock) {
+            if (sysMinutes > accumulatedMinutes) {
+                accumulatedMs = sysMinutes * 60_000L
+                accumulatedMinutes = sysMinutes
+                saveAccumulated()
+            }
         }
     }
 
@@ -269,15 +306,25 @@ class UsageCoachController(
     fun stop() {
         heartbeatJob?.cancel()
         heartbeatJob = null
+        reactionJob?.cancel()
+        reactionJob = null
     }
 
     /** Feed a screen transition; timestamps use the monotonic clock. */
     fun feedScreen(screenOn: Boolean, elapsedMs: Long) {
-        settings.refresh()
-        if (!settings.current.enabled) return
-        rollDayIfNeeded()
-        feedInternal(screenOn, elapsedMs)
-        if (!screenOn) evaluate()
+        synchronized(lock) {
+            settings.refresh()
+            rollDayIfNeeded()
+            feedInternal(screenOn, elapsedMs)
+            if (screenOn) {
+                // The dark gap before this wake broadcast must not count as usage:
+                // re-anchor the accumulation beat so evaluate() adds nothing for it.
+                lastBeatElapsed = elapsedMs
+            }
+            // Evaluate on every transition (not only screen-off) so the published
+            // live state follows reality immediately.
+            evaluate()
+        }
     }
 
     private fun feedInternal(screenOn: Boolean, elapsedMs: Long) {
@@ -326,9 +373,14 @@ class UsageCoachController(
         publishLiveState()
     }
 
-    /** Snapshot the planet card renders from; refreshed every heartbeat (15s). */
+    /** Snapshot the planet card renders from; refreshed every heartbeat (5s) and on every event. */
     private fun publishLiveState() {
         val prefs = settings.current
+        // Coach off = plan off: publish nulls so the home hero shows 未设置 instead
+        // of a budget frozen from the last on-period, and so the toggle has a
+        // visible effect immediately.
+        val effectiveBudget = prefs.budgetMinutes.takeIf { prefs.enabled }
+        val effectiveLimit = prefs.continuousLimitMinutes.takeIf { prefs.enabled }
         val records = (0 until 7).map { offset ->
             val key = PlanetEngine.shiftKey(dayKey, -offset)
             if (key == dayKey) {
@@ -337,7 +389,7 @@ class UsageCoachController(
                 PlanetEngine.DayRecord(
                     dateKey = key,
                     screenOnMinutes = accumulatedMinutes,
-                    budgetMinutes = prefs.budgetMinutes,
+                    budgetMinutes = effectiveBudget,
                     achieved = null
                 )
             } else dayStore.get(key)
@@ -346,8 +398,8 @@ class UsageCoachController(
             enabled = prefs.enabled,
             todayMinutes = accumulatedMinutes,
             sessionMinutes = tracker.currentSessionMinutes(SystemClockElapsed()),
-            budgetMinutes = prefs.budgetMinutes,
-            continuousLimitMinutes = prefs.continuousLimitMinutes,
+            budgetMinutes = effectiveBudget,
+            continuousLimitMinutes = effectiveLimit,
             stage = PlanetEngine.stage(records, dayKey),
             streakDays = PlanetEngine.consecutiveAchievedDays(records),
             last7Days = records
@@ -358,7 +410,10 @@ class UsageCoachController(
         val today = todayKey()
         if (today != dayKey) {
             // Archive yesterday for the planet (real screen-on minutes + budget + achieved).
-            val budget = settings.current.budgetMinutes
+            // Per the engine contract a day without an active budget is not a valid
+            // day (null = feature off), so disabled days never grow the planet.
+            val prefs = settings.current
+            val budget = prefs.budgetMinutes.takeIf { prefs.enabled }
             dayStore.put(PlanetEngine.DayRecord(
                 dateKey = dayKey,
                 screenOnMinutes = accumulatedMinutes,
@@ -416,10 +471,24 @@ class UsageCoachController(
 
         private val liveState = MutableStateFlow(LiveState())
         fun liveState(): StateFlow<LiveState> = liveState.asStateFlow()
+
+        // UI-side instant-refresh request (app resumed, tab switch, ...). Coalesced
+        // with the settings-change signal by the reaction collector in start().
+        private val refreshTick = MutableStateFlow(0)
+        fun requestRefresh() {
+            refreshTick.value += 1
+        }
+
         private const val PREFS_DAY = "usage_coach_day"
         private const val KEY_ACCUM = "accum_minutes"
         private const val KEY_FIRED = "fired_keys"
-        private const val HEARTBEAT_MS = 15_000L
+        // 5s: the service already samples battery at 5s while the screen is on, so
+        // the coach beat is never the bottleneck; it only bounds how long a fresh
+        // screen-on minute can stay invisible (worst case one beat).
+        private const val HEARTBEAT_MS = 5_000L
+        // Coalescing window for UI-card saves: per-keystroke writes must not spam
+        // evaluations, and intermediate typed values ("2" of "240") must not alert.
+        private const val REACTION_DELAY_MS = 300L
         fun SystemClockElapsed(): Long = android.os.SystemClock.elapsedRealtime()
     }
 }

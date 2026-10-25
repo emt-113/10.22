@@ -34,9 +34,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.ui.draw.alpha
@@ -239,6 +241,13 @@ private fun PlanetHero(
         todayMinutes.toFloat() / budgetMinutes
     } else null
     val over = progress != null && progress > 1f
+    // The arc glides to its new value instead of jumping: every live-data update
+    // (5s heartbeat, settings change, screen transition) animates into place.
+    val animatedProgress by animateFloatAsState(
+        targetValue = (progress ?: 0f).coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+        label = "planet-progress-arc"
+    )
     // Coach live state is collected once in PlanetHomeSection and passed down as
     // scalars: three separate collectors (here + RestTipCard) used to triple the
     // recomposition work on every 15s heartbeat with zero visual benefit.
@@ -335,7 +344,7 @@ private fun PlanetHero(
                 modifier = Modifier.fillMaxWidth().height(236.dp).onSizeChanged { canvasSize = it }
                     .drawBehind {
                         animatedLayer?.let { drawImage(it) }
-                        drawPlanetProgress(progress = progress, over = over, phase = orbitPhase, prebuiltBrush = progressBrush)
+                        drawPlanetProgress(progress = if (progress != null) animatedProgress else null, over = over, phase = orbitPhase, prebuiltBrush = progressBrush)
                     drawPlanetOrbitShimmer(orbitPhase, tiltPhase, visualState)
                     drawPlanetSurfaceFlow(orbitPhase, visualState, spherePath = surfaceSpherePath, flowPath = surfaceFlowPath, prebuiltBrush = surfaceFlowBrush)
                     }.clickable(onClick = onClick).testTag("planet_hero")
