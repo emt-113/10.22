@@ -57,6 +57,7 @@ import com.aizeek.phonepulse.ui.theme.SurfaceElevatedDark
 import com.aizeek.phonepulse.ui.theme.TextPrimary
 import com.aizeek.phonepulse.ui.theme.TextSecondary
 import com.aizeek.phonepulse.ui.theme.TextTertiary
+import com.aizeek.phonepulse.ui.components.FontSizeDialCard
 import com.aizeek.phonepulse.update.UpdatePhase
 import com.aizeek.phonepulse.update.UpdateRepository
 import com.aizeek.phonepulse.update.UpdateState
@@ -175,6 +176,11 @@ fun SettingsScreen(
 
         item {
             NotificationPrefsCard()
+        }
+
+        // Reading font size ruler (persists; drives the history timeline text).
+        item {
+            FontSizeDialCard()
         }
 
         // Section 3: About & Local Storage Privacy

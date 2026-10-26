@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,7 @@ import com.aizeek.phonepulse.ui.theme.BorderDark
 import com.aizeek.phonepulse.ui.theme.CoralRose
 import com.aizeek.phonepulse.ui.theme.ElectricViolet
 import com.aizeek.phonepulse.ui.theme.NeonCyan
+import com.aizeek.phonepulse.ui.theme.ReadingFontStore
 import com.aizeek.phonepulse.ui.theme.SurfaceDark
 import com.aizeek.phonepulse.ui.theme.SurfaceElevatedDark
 import com.aizeek.phonepulse.ui.theme.TextPrimary
@@ -65,6 +67,8 @@ fun HistoryTimelineScreen(
 ) {
     var selectedFilter by remember { mutableStateOf(SessionFilter.ALL) }
     var showClearDialog by remember { mutableStateOf(false) }
+    val loadContext = LocalContext.current
+    remember { ReadingFontStore.load(loadContext); true }
 
     val filteredSessions = remember(sessions, selectedFilter) {
         when (selectedFilter) {
@@ -344,14 +348,14 @@ private fun TimelineSessionCard(
                         Text(
                             text = if (isScreenOn) "亮屏使用阶段" else "熄屏休眠阶段",
                             color = TextPrimary,
-                            fontSize = 14.sp,
+                            fontSize = ReadingFontStore.fontSp.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "${TimeFormatter.dateKey(session.startTime)} · ${TimeFormatter.formatTime(session.startTime)} 开始",
                             color = TextTertiary,
-                            fontSize = 12.sp
+                            fontSize = (ReadingFontStore.fontSp - 2).sp
                         )
                     }
                 }

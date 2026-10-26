@@ -361,7 +361,7 @@ private fun PlanetHero(
             }
             Spacer(
                 modifier = Modifier.fillMaxWidth().height(236.dp)
-                    .bevelPressable(onClick = onClick)
+                    .bevelTiltPressable(onClick = onClick)
                     .onSizeChanged { canvasSize = it }
                     .drawBehind {
                         animatedLayer?.let { drawImage(it) }
@@ -431,6 +431,9 @@ private fun PlanetHero(
             }
         )
     }
+
+    // Long-press breath bar: stretch-to-breathe for one stardust (10/day cap).
+    BreathPulseRow(modifier = Modifier.padding(horizontal = 6.dp))
 }
 
 internal enum class PlanetVisualState(val title: String, val color: Color, val orbitDurationMs: Int) {

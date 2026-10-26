@@ -58,9 +58,38 @@ class ReturnGiftStore(context: Context) {
 
     fun totalStardust(): Int = prefs.getInt(KEY_TOTAL, 0)
 
+    /**
+     * Completed breath-hold bonus: pays [BreathPulseEngine.DAILY_CAP] per day
+     * into the same stardust ledger. Pass a yyyyMMdd [todayKey]; the daily
+     * counter resets itself when the key rolls over. Returns the award with
+     * [BreathPulseEngine.Award.earned] == 0 once today's cap is reached, so
+     * the caller can say "今日已达上限" instead of pretending to pay.
+     */
+    fun grantBreathBonus(todayKey: String): BreathPulseEngine.Award {
+        val award = BreathPulseEngine.award(
+            storedDayKey = prefs.getString(KEY_BREATH_DAY, null).orEmpty(),
+            storedCount = prefs.getInt(KEY_BREATH_COUNT, 0),
+            todayKey = todayKey
+        )
+        if (award.earned > 0) {
+            prefs.edit()
+                .putInt(KEY_TOTAL, totalStardust() + award.earned)
+                .putString(KEY_BREATH_DAY, award.dayKey)
+                .putInt(KEY_BREATH_COUNT, award.todayCount)
+                .apply()
+        }
+        return award
+    }
+
+    /** Today's completed breaths, for the counter pill on the home hero. */
+    fun breathCount(todayKey: String): Int =
+        if (prefs.getString(KEY_BREATH_DAY, null) == todayKey) prefs.getInt(KEY_BREATH_COUNT, 0) else 0
+
     private companion object {
         const val KEY_LAST_LEAVE = "last_leave_ms"
         const val KEY_TOTAL = "stardust_total"
+        const val KEY_BREATH_DAY = "breath_day"
+        const val KEY_BREATH_COUNT = "breath_count"
     }
 }
 

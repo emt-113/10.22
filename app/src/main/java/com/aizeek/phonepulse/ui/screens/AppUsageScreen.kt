@@ -53,6 +53,12 @@ import com.aizeek.phonepulse.data.AppUsageInfo
 import com.aizeek.phonepulse.data.AppBatteryUsage
 import com.aizeek.phonepulse.data.AppUsageTimeline
 import com.aizeek.phonepulse.data.UsagePeriod
+import com.aizeek.phonepulse.ui.components.TagSearchField
+import com.aizeek.phonepulse.ui.components.UsageBand
+import com.aizeek.phonepulse.ui.components.UsageFilterButton
+import com.aizeek.phonepulse.ui.components.UsageFilterEngine
+import com.aizeek.phonepulse.ui.components.UsageFilterPanel
+import com.aizeek.phonepulse.ui.components.bevelTiltPressable
 import com.aizeek.phonepulse.ui.theme.BevelAmberDeep
 import com.aizeek.phonepulse.ui.theme.BevelMintDeep
 import com.aizeek.phonepulse.ui.theme.AmberWarning
@@ -81,6 +87,9 @@ fun AppUsageScreen(
     loadTimeline: suspend (String) -> AppUsageTimeline? = { null }
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var filterExpanded by remember { mutableStateOf(false) }
+    var selectedBands by remember { mutableStateOf(emptySet<UsageBand>()) }
+    var searchTags by remember { mutableStateOf(emptyList<String>()) }
     var selectedPackage by rememberSaveable { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val selectedApp = usageList.firstOrNull { it.packageName == selectedPackage }
@@ -91,14 +100,19 @@ fun AppUsageScreen(
         return
     }
 
-    val filteredList = remember(usageList, searchQuery) {
-        val base = if (searchQuery.isBlank()) usageList
-        else usageList.filter {
-            it.appName.contains(searchQuery, ignoreCase = true) ||
-            it.packageName.contains(searchQuery, ignoreCase = true)
+    val filteredList = remember(usageList, searchQuery, searchTags, selectedBands) {
+        val matchesQuery = { app: AppUsageInfo ->
+            searchQuery.isBlank() ||
+                app.appName.contains(searchQuery, ignoreCase = true) ||
+                app.packageName.contains(searchQuery, ignoreCase = true)
         }
-        base.sortedByDescending { it.totalTimeInForegroundMs }
+        usageList.filter { app ->
+            UsageFilterEngine.matchesBands(selectedBands, app.totalTimeInForegroundMs) &&
+                UsageFilterEngine.matchesTags(searchTags, app.appName, app.packageName) &&
+                matchesQuery(app)
+        }.sortedByDescending { it.totalTimeInForegroundMs }
     }
+    val anyFilterActive = searchQuery.isNotBlank() || searchTags.isNotEmpty() || selectedBands.isNotEmpty()
 
     val totalForegroundTimeMs = remember(usageList) {
         usageList.sumOf { it.totalTimeInForegroundMs }
@@ -128,6 +142,17 @@ fun AppUsageScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Multi-select filter: the badge count bounces as tags toggle.
+                UsageFilterButton(
+                    selectedCount = selectedBands.size,
+                    expanded = filterExpanded,
+                    onToggle = { filterExpanded = !filterExpanded }
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Box(
                     modifier = Modifier
@@ -190,6 +215,15 @@ fun AppUsageScreen(
                     }
                 }
             }
+        }
+
+        // Multi-select intensity filter panel (stacked -> spread on open).
+        item {
+            UsageFilterPanel(
+                visible = filterExpanded,
+                selected = selectedBands,
+                onSelectionChange = { selectedBands = it }
+            )
         }
 
         // Hero Summary Card
@@ -263,41 +297,15 @@ fun AppUsageScreen(
             }
         }
 
-        // Search row
+        // Search row — tag-capable: suggestions insert tags, tags filter the list.
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Search Input
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("搜索系统应用...", color = TextTertiary, fontSize = 12.sp) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = TextTertiary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("app_search_input"),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = SurfaceDark,
-                        unfocusedContainerColor = SurfaceDark,
-                        focusedBorderColor = NeonCyan,
-                        unfocusedBorderColor = BorderDark,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    )
-                )
-            }
+            TagSearchField(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                tags = searchTags,
+                onTagsChange = { searchTags = it },
+                suggestionPool = usageList.map { it.appName }
+            )
         }
 
         if (isLoading) {
@@ -324,7 +332,9 @@ fun AppUsageScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = if (!hasPermission) "请授权使用情况访问权限后查看" else "当前时段内未获取到系统前台运行记录",
+                            text = if (!hasPermission) "请授权使用情况访问权限后查看"
+                            else if (anyFilterActive) "没有符合当前筛选条件的应用"
+                            else "当前时段内未获取到系统前台运行记录",
                             color = TextSecondary,
                             fontSize = 13.sp
                         )
@@ -352,10 +362,10 @@ private fun AppUsageItemCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .bevelTiltPressable(onClick = onClick)
             .clip(RoundedCornerShape(18.dp))
             .background(SurfaceDark)
             .border(1.dp, BorderDark, RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
             .padding(14.dp)
             .testTag("app_usage_card_${app.packageName}")
     ) {
