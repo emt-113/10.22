@@ -202,7 +202,7 @@ fun BatteryScreen(
                         "${batteryInfo.percentage}% · ${batteryInfo.plugType}"
                     } else "等待采样",
                     color = if (batteryInfo.isCharging) NeonEmerald else NeonCyan,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -253,7 +253,7 @@ fun BatteryScreen(
                         Text(
                             text = tab.title,
                             color = if (isSelected) TextPrimary else TextSecondary,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
                     }
@@ -443,7 +443,7 @@ private fun QuickJumpCard(
                 Text(
                     text = title,
                     color = TextSecondary,
-                    fontSize = 11.sp
+                    fontSize = 12.sp
                 )
                 Text(
                     text = "›",
@@ -494,7 +494,7 @@ private fun AppBatteryItemCard(usage: AppBatteryUsage, onClick: () -> Unit) {
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("系统记录", color = NeonCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text("前台时长", color = TextSecondary, fontSize = 11.sp)
+                    Text("前台时长", color = TextSecondary, fontSize = 12.sp)
                 }
             }
 

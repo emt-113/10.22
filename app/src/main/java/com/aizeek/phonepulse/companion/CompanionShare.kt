@@ -37,15 +37,15 @@ object CompanionShare {
         val bitmap = Bitmap.createBitmap(900, 1250, Bitmap.Config.ARGB_8888)
         try {
             val canvas = Canvas(bitmap)
-            canvas.drawColor(Color.rgb(16, 29, 35))
+            canvas.drawColor(Color.rgb(251, 247, 240))
             val p = Paint(Paint.ANTI_ALIAS_FLAG)
             fun text(value: String, x: Float, y: Float, size: Float, color: Int, bold: Boolean = false) {
                 p.color = color; p.textSize = size
                 p.typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
                 canvas.drawText(value, x, y, p)
             }
-            val cream = Color.rgb(242, 232, 216); val muted = Color.rgb(173, 189, 185)
-            val sage = Color.rgb(182, 211, 179)
+            val cream = Color.rgb(36, 44, 51); val muted = Color.rgb(95, 107, 118)
+            val sage = Color.rgb(30, 156, 129)
             text("${context.getString(R.string.app_name).uppercase(Locale.getDefault())}  /  FOREST POSTCARD", 60f, 75f, 21f, sage)
             text(letter?.title ?: "${state.name}的森林小窝", 60f, 148f, 44f, cream, true)
             canvas.save(); canvas.translate(60f, 195f)

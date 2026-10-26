@@ -95,6 +95,7 @@ import com.aizeek.phonepulse.intervention.PlanetEngine
 import com.aizeek.phonepulse.intervention.ReturnGiftEngine
 import com.aizeek.phonepulse.intervention.UsageCoachController
 import com.aizeek.phonepulse.ui.theme.BevelAmber
+import com.aizeek.phonepulse.ui.theme.BevelBlue
 import com.aizeek.phonepulse.ui.theme.BevelCard
 import com.aizeek.phonepulse.ui.theme.BevelCardBorder
 import com.aizeek.phonepulse.ui.theme.BevelCoral
@@ -141,7 +142,8 @@ fun PlanetHomeSection(
     monitor: BatteryMonitorUiState,
     lastScreenOffDurationMs: Long?,
     onClickPlanet: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenCoach: () -> Unit
 ) {
     val live by UsageCoachController.liveState().collectAsStateWithLifecycle()
     // Re-derived on every recomposition (live state beats every 5s while the screen
@@ -166,7 +168,8 @@ fun PlanetHomeSection(
             continuousLimitMinutes = live.continuousLimitMinutes,
             isScreenOn = isScreenOn,
             restArrival = restArrival,
-            onClick = onClickPlanet
+            onClick = onClickPlanet,
+            onOpenCoach = onOpenCoach
         )
 
         RestTipCard(
@@ -212,12 +215,12 @@ private fun HomeHeader(onOpenSettings: () -> Unit) {
         }
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .bevelPressable(onClick = onOpenSettings)
+                .size(44.dp)
                 .shadow(1.dp, CircleShape)
                 .clip(CircleShape)
                 .background(BevelCard)
                 .border(1.dp, BevelCardBorder, CircleShape)
-                .clickable { onOpenSettings() }
                 .testTag("home_settings_entry"),
             contentAlignment = Alignment.Center
         ) {
@@ -248,7 +251,8 @@ private fun PlanetHero(
     continuousLimitMinutes: Int?,
     isScreenOn: Boolean,
     restArrival: RestArrival?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onOpenCoach: () -> Unit
 ) {
     val progress = if (budgetMinutes != null && budgetMinutes > 0) {
         todayMinutes.toFloat() / budgetMinutes
@@ -337,7 +341,7 @@ private fun PlanetHero(
         Text(
             text = "脉搏星球 · ${visualState.title}",
             color = stageColor,
-            fontSize = 10.sp,
+            fontSize = 11.5.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -356,20 +360,22 @@ private fun PlanetHero(
                 )
             }
             Spacer(
-                modifier = Modifier.fillMaxWidth().height(236.dp).onSizeChanged { canvasSize = it }
+                modifier = Modifier.fillMaxWidth().height(236.dp)
+                    .bevelPressable(onClick = onClick)
+                    .onSizeChanged { canvasSize = it }
                     .drawBehind {
                         animatedLayer?.let { drawImage(it) }
                         drawPlanetProgress(progress = if (progress != null) animatedProgress else null, over = over, phase = orbitPhase, prebuiltBrush = progressBrush, planetDisk = surfaceSpherePath)
                     drawPlanetOrbitShimmer(orbitPhase, tiltPhase, visualState, planetDisk = surfaceSpherePath)
                     drawPlanetSurfaceFlow(orbitPhase, visualState, spherePath = surfaceSpherePath, flowPath = surfaceFlowPath, prebuiltBrush = surfaceFlowBrush)
-                    }.clickable(onClick = onClick).testTag("planet_hero")
+                    }.testTag("planet_hero")
             )
         }
         if (BuildConfig.DEBUG) {
             Text(
                 text = "${visualState.ordinal + 1}/4 预览",
                 color = BevelTextSecondary,
-                fontSize = 10.sp,
+                fontSize = 11.5.sp,
                 modifier = Modifier.align(Alignment.TopEnd).clip(RoundedCornerShape(9.dp))
                     .background(BevelCard.copy(alpha = 0.92f)).clickable {
                         demoState = PlanetVisualState.entries[(visualState.ordinal + 1) % PlanetVisualState.entries.size]
@@ -386,10 +392,25 @@ private fun PlanetHero(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HeroStat(
-            label = "今日预算",
-            value = budgetMinutes?.let { "$it 分钟" } ?: "未设置"
-        )
+        if (budgetMinutes == null) {
+            // Day-one state is a designed screen: the empty budget slot invites
+            // the one action that starts the loop instead of reading as "—".
+            Column(
+                modifier = Modifier.bevelPressable(onClick = onOpenCoach, pressedScale = 0.94f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("今日预算", color = BevelTextTertiary, fontSize = 11.5.sp)
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    "未设置 · 去开启",
+                    color = BevelBlue,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        } else {
+            HeroStat(label = "今日预算", value = "$budgetMinutes 分钟")
+        }
         HeroStat(
             label = if (over) "已超额" else "剩余",
             value = if (budgetMinutes != null && budgetMinutes > 0) {
@@ -1171,7 +1192,7 @@ private fun HeroStat(label: String, value: String, valueColor: Color = BevelText
         Text(
             text = label,
             color = BevelTextTertiary,
-            fontSize = 10.sp
+            fontSize = 11.5.sp
         )
         Spacer(modifier = Modifier.height(3.dp))
         Text(
@@ -1374,8 +1395,8 @@ private fun RestTipCard(
             Text(
                 text = body,
                 color = BevelTextSecondary,
-                fontSize = 11.sp,
-                lineHeight = 15.sp
+                fontSize = 12.sp,
+                lineHeight = 17.sp
             )
         }
     }
@@ -1425,7 +1446,7 @@ private fun TodayScreenCard(
                     Text(
                         text = if (isScreenOn) "使用中" else "休眠中",
                         color = stateColor,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -1442,7 +1463,7 @@ private fun TodayScreenCard(
                     Text(
                         text = if (isServiceRunning) "守护运行中" else "守护未开启",
                         color = if (isServiceRunning) BevelTextTertiary else BevelAmber,
-                        fontSize = 10.sp
+                        fontSize = 11.5.sp
                     )
                 }
             }
@@ -1474,7 +1495,7 @@ private fun TodayScreenCard(
             Text(
                 text = "今日实际亮屏 · 实时统计",
                 color = BevelTextTertiary,
-                fontSize = 10.sp,
+                fontSize = 11.5.sp,
                 modifier = Modifier.padding(bottom = 5.dp)
             )
         }
@@ -1617,7 +1638,7 @@ private fun BatteryHealthCard(
                 .filter { it.isNotEmpty() }
                 .joinToString(" · "),
             color = BevelTextTertiary,
-            fontSize = 10.sp,
+            fontSize = 11.5.sp,
             maxLines = 1
         )
     }
@@ -1672,7 +1693,7 @@ private fun ChargeTargetCard(
             Text(
                 text = "目标电量",
                 color = BevelTextTertiary,
-                fontSize = 10.sp,
+                fontSize = 11.5.sp,
                 modifier = Modifier.padding(bottom = 3.dp)
             )
         }
@@ -1683,7 +1704,7 @@ private fun ChargeTargetCard(
         Text(
             text = if (level in 0..100) "当前电量 $level%" else "当前电量采集中",
             color = BevelTextTertiary,
-            fontSize = 10.sp,
+            fontSize = 11.5.sp,
             maxLines = 1
         )
     }
@@ -1748,7 +1769,7 @@ private fun StatusPill(text: String, color: Color) {
     Text(
         text = text,
         color = color,
-        fontSize = 10.sp,
+        fontSize = 11.5.sp,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(9.dp))

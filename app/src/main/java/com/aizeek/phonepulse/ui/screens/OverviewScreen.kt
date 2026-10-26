@@ -235,7 +235,7 @@ private fun RecentSessionRow(
                     Text(
                         text = "${TimeFormatter.formatTime(session.startTime)} - ${TimeFormatter.formatTime(session.endTime)}",
                         color = BevelTextTertiary,
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 }
             }

@@ -132,7 +132,7 @@ private fun BentoTile(
                 if (icon != null) {
                     Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(13.dp))
                 }
-                Text(label, color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                Text(label, color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
             Text(value, color = accentColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             subtext?.invoke()
@@ -157,7 +157,7 @@ private fun MonitorCallout(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(15.dp))
-        Text(text, color = TextSecondary, fontSize = 12.sp, lineHeight = 16.sp)
+        Text(text, color = TextSecondary, fontSize = 12.sp, lineHeight = 18.sp)
     }
 }
 
@@ -227,7 +227,7 @@ fun BatteryMeasurementCard(state: BatteryMonitorUiState) {
                 Text(
                     text = if (measuring) "持续监测中" else if (state.isRunning) "采样待恢复" else "监测未运行 · 开启保活守护可持续记录",
                     color = if (measuring) NeonEmerald else TextTertiary,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -275,7 +275,7 @@ fun BatteryMeasurementCard(state: BatteryMonitorUiState) {
                         Text(
                             text = state.lastSampleTime?.let { TimeFormatter.formatSampleUpdateTime(it) } ?: "等待首次采样",
                             color = TextTertiary,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             maxLines = 1,
                             softWrap = false
                         )
@@ -353,7 +353,7 @@ fun BatteryMeasurementCard(state: BatteryMonitorUiState) {
                             Text(
                                 "已测净电荷 ${measuredCharge(cycle)} · 覆盖率 ${coverage(cycle)}",
                                 color = TextTertiary,
-                                fontSize = 11.sp
+                                fontSize = 12.sp
                             )
                         }
                     )
@@ -367,7 +367,7 @@ fun BatteryMeasurementCard(state: BatteryMonitorUiState) {
                             Text(
                                 "测量 ${duration(cycle.measuredMs)} · 缺失 ${duration(cycle.missingMs)}",
                                 color = TextTertiary,
-                                fontSize = 11.sp
+                                fontSize = 12.sp
                             )
                         }
                     )
@@ -385,7 +385,7 @@ fun BatteryMeasurementCard(state: BatteryMonitorUiState) {
                                 Text(
                                     "亮屏 ${bucketCharge(cycle, true)} · 熄屏 ${bucketCharge(cycle, false)}",
                                     color = TextTertiary,
-                                    fontSize = 11.sp
+                                    fontSize = 12.sp
                                 )
                             }
                         }
@@ -509,8 +509,8 @@ fun BatteryHealthCard(state: BatteryMonitorUiState,
                         fontSize = 12.sp
                     )
                     if (health.acceptedCount > 0) {
-                        Text("短会话 ${health.shortSampleCount} 次 · 大跨度 ${health.referenceSampleCount} 次", color = TextSecondary, fontSize = 11.sp)
-                        Text("近期电量区间覆盖 ${health.socCoveragePct} 个百分点", color = TextSecondary, fontSize = 11.sp)
+                        Text("短会话 ${health.shortSampleCount} 次 · 大跨度 ${health.referenceSampleCount} 次", color = TextSecondary, fontSize = 12.sp)
+                        Text("近期电量区间覆盖 ${health.socCoveragePct} 个百分点", color = TextSecondary, fontSize = 12.sp)
                     }
                 }
 
@@ -564,7 +564,7 @@ fun BatteryHealthCard(state: BatteryMonitorUiState,
                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                 iconTint = ElectricViolet,
                 subtext = {
-                    Text("样本离散程度 ${health.spreadPct?.let { "${percent(it)}%" } ?: "待更多样本"}", color = TextTertiary, fontSize = 11.sp)
+                    Text("样本离散程度 ${health.spreadPct?.let { "${percent(it)}%" } ?: "待更多样本"}", color = TextTertiary, fontSize = 12.sp)
                 }
             )
             BentoTile(
@@ -634,7 +634,7 @@ fun BatteryHealthCard(state: BatteryMonitorUiState,
                     Text(
                         "按记录顺序 · ${number(points.first().estimatedCapacityMah!!)} → ${number(points.last().estimatedCapacityMah!!)} mAh",
                         color = NeonEmerald,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -775,9 +775,9 @@ fun BatteryMaintenanceCard(
                         trackColor = SurfaceElevatedDark
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("0%", color = TextTertiary, fontSize = 10.sp)
-                        Text("养护目标 ${state.settings.chargeTargetPct}%", color = ElectricVioletLight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Text("100%", color = TextTertiary, fontSize = 10.sp)
+                        Text("0%", color = TextTertiary, fontSize = 11.5.sp)
+                        Text("养护目标 ${state.settings.chargeTargetPct}%", color = ElectricVioletLight, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                        Text("100%", color = TextTertiary, fontSize = 11.5.sp)
                     }
                 }
 
@@ -852,7 +852,7 @@ fun BatteryMaintenanceCard(
                     Text(
                         text = it,
                         color = TextTertiary,
-                        fontSize = 10.sp,
+                        fontSize = 11.5.sp,
                         lineHeight = 14.sp
                     )
                 }
@@ -887,7 +887,7 @@ fun BatteryMaintenanceCard(
                     text = estimatesSourceText(state.estimates.source, charging = false)
                         ?: "正在积累耗电数据，稍后会自动给出预估时间。",
                     color = TextTertiary,
-                    fontSize = 10.sp,
+                    fontSize = 11.5.sp,
                     lineHeight = 14.sp
                 )
             } else {
@@ -942,7 +942,7 @@ private fun BatterySettingsDialog(
                     )
                     Text(
                         "设备官方标称的电池容量，会影响健康度估算。不确定就留空，App 会尝试自动识别（系统读数或内置机型表）。",
-                        color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                        color = TextTertiary, fontSize = 12.sp, lineHeight = 17.sp
                     )
 
                     OutlinedTextField(
@@ -955,7 +955,7 @@ private fun BatterySettingsDialog(
                     )
                     Text(
                         "充电到这个电量时提醒你，避免长时间满电；建议设 80%，有利于延长电池寿命。",
-                        color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                        color = TextTertiary, fontSize = 12.sp, lineHeight = 17.sp
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -970,7 +970,7 @@ private fun BatterySettingsDialog(
                     if (advanced) {
                         Text(
                             "多数手机不需要动这几项；只有当电流读数明显不对（方向相反或大小偏差固定倍数）时才调整。修改后会开始新的记录会话，旧记录不会重新计算。",
-                            color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                            color = TextTertiary, fontSize = 12.sp, lineHeight = 17.sp
                         )
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -979,7 +979,7 @@ private fun BatterySettingsDialog(
                             }
                             Text(
                                 "如果充电时显示负数、放电时显示正数（方向反了），勾上即可纠正。",
-                                color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp,
+                                color = TextTertiary, fontSize = 12.sp, lineHeight = 17.sp,
                                 modifier = Modifier.padding(start = 4.dp)
                             )
                         }
@@ -993,7 +993,7 @@ private fun BatterySettingsDialog(
                         )
                         Text(
                             "正常保持 1.0；仅当电流数值整体偏大或偏小固定倍数时才调整。",
-                            color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                            color = TextTertiary, fontSize = 12.sp, lineHeight = 17.sp
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = cells == 1, onClick = { cells = 1 })
@@ -1004,7 +1004,7 @@ private fun BatterySettingsDialog(
                         }
                         Text(
                             "普通手机选『不换算』；少数内置双电芯的机型读数需 ×2 才等于整块电池，不确定就选不换算。",
-                            color = TextTertiary, fontSize = 11.sp, lineHeight = 15.sp
+                            color = TextTertiary, fontSize = 12.sp, lineHeight = 17.sp
                         )
                     }
                 }
@@ -1053,7 +1053,7 @@ fun BatterySessionsCard(cycles: List<BatteryCycle>, onExclude: (Long, Boolean) -
                         .background(SurfaceDark)
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
-                    Text("${cycles.take(10).size} 条记录", color = TextTertiary, fontSize = 11.sp)
+                    Text("${cycles.take(10).size} 条记录", color = TextTertiary, fontSize = 12.sp)
                 }
             }
         }
@@ -1119,7 +1119,7 @@ fun BatterySessionsCard(cycles: List<BatteryCycle>, onExclude: (Long, Boolean) -
                                 Text(
                                     text = "${TimeFormatter.formatDateTime(cycle.startTime)} · ${if (expanded) "收起详情" else "展开详情"}",
                                     color = TextSecondary,
-                                    fontSize = 11.sp
+                                    fontSize = 12.sp
                                 )
                             }
                         }
@@ -1151,7 +1151,7 @@ fun BatterySessionsCard(cycles: List<BatteryCycle>, onExclude: (Long, Boolean) -
                         Text(
                             text = if (cycle.excluded) "已由你排除，不计入健康估算" else rejectionLabel(cycle.rejectionReason),
                             color = if (cycle.excluded) AmberWarning else TextSecondary,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         )
                     }
 

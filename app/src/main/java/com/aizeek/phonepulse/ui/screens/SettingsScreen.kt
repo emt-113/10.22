@@ -246,7 +246,7 @@ private fun VersionUpdateCard(
                                 Text(
                                     text = "v${BuildConfig.VERSION_NAME}",
                                     color = NeonCyan,
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
@@ -255,7 +255,7 @@ private fun VersionUpdateCard(
                         Text(
                             text = "版本更新",
                             color = TextTertiary,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         )
                     }
                 }
@@ -271,7 +271,7 @@ private fun VersionUpdateCard(
                         Text(
                             text = "NEW",
                             color = Color.White,
-                            fontSize = 10.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -469,8 +469,8 @@ private fun AboutAppCard() {
             Text(
                 text = "使用记录与电量数据仅保存在本机，不会上传。",
                 color = TextTertiary,
-                fontSize = 11.sp,
-                lineHeight = 16.sp
+                fontSize = 12.sp,
+                lineHeight = 18.sp
             )
         }
     }
@@ -522,7 +522,7 @@ private fun NotificationPrefsCard() {
                     Text(
                         text = "悬浮 · 锁屏 · 声音 · 振动，按你的习惯设置",
                         color = TextTertiary,
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 }
             }

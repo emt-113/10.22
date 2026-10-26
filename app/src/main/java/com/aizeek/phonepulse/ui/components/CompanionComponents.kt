@@ -27,22 +27,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aizeek.phonepulse.companion.*
+import com.aizeek.phonepulse.ui.theme.BevelAmberDeep
+import com.aizeek.phonepulse.ui.theme.BevelCard
 import com.aizeek.phonepulse.ui.theme.BevelCardBorder
 import com.aizeek.phonepulse.ui.theme.BevelCyan
 import com.aizeek.phonepulse.ui.theme.BevelLavenderTop
 import com.aizeek.phonepulse.ui.theme.BevelMint
+import com.aizeek.phonepulse.ui.theme.BevelMintDeep
 import com.aizeek.phonepulse.ui.theme.BevelMistBottom
+import com.aizeek.phonepulse.ui.theme.BevelPageBottom
 import com.aizeek.phonepulse.ui.theme.BevelTextPrimary
 import com.aizeek.phonepulse.ui.theme.BevelTextSecondary
 import com.aizeek.phonepulse.ui.theme.BevelViolet
 
-val ForestBackground = Color(0xFF101D23)
-val ForestSurface = Color(0xFF1B2B30)
-val ForestBorder = Color(0xFF33464A)
-val ForestSage = Color(0xFFB6D3B3)
-val ForestCream = Color(0xFFF2E8D8)
-val ForestMuted = Color(0xFFADBDB9)
-val ForestGold = Color(0xFFE8C78F)
+val ForestBackground = BevelPageBottom
+val ForestSurface = BevelCard
+val ForestBorder = BevelCardBorder
+val ForestSage = BevelMintDeep
+val ForestCream = BevelTextPrimary
+val ForestMuted = BevelTextSecondary
+val ForestGold = BevelAmberDeep
 
 @Composable
 fun PetScene(state: CompanionState, modifier: Modifier = Modifier, sleepy: Boolean = false,
@@ -99,7 +103,7 @@ fun CompanionHomeEntry(ui: CompanionUiState, onClick: () -> Unit, modifier: Modi
             }
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(prompt.badge, color = BevelViolet, fontSize = 10.sp,
+            Text(prompt.badge, color = BevelViolet, fontSize = 11.5.sp,
                 modifier = Modifier.background(BevelViolet.copy(alpha = 0.12f), RoundedCornerShape(10.dp)).padding(9.dp, 5.dp))
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { onAction(prompt) }, enabled = ui.loaded,

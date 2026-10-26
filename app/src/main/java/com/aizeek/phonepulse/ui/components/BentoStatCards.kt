@@ -183,7 +183,7 @@ fun BentoStatCards(
                     Text(
                         text = "参考目标 6h · 占比 ${(progress * 100).toInt()}%",
                         color = BevelTextTertiary,
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -243,7 +243,7 @@ fun BentoStatCards(
                     Text(
                         text = if (avgDurationMs > 0) "均次 ${TimeFormatter.formatDurationCompact(avgDurationMs)}" else "尚无均次",
                         color = BevelTextTertiary,
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -311,7 +311,7 @@ private fun MetricTile(
             Text(
                 text = detail,
                 color = BevelTextTertiary,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 maxLines = 1
             )
         }

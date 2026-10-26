@@ -115,7 +115,7 @@ fun BatteryLevelChart(records: List<BatteryRecord>, modifier: Modifier = Modifie
                 Row(Modifier.fillMaxWidth().height(180.dp)) {
                     Column(Modifier.width(36.dp).height(180.dp), verticalArrangement = Arrangement.SpaceBetween) {
                         listOf("100%", "50%", "0%").forEach {
-                            Text(it, color = TextTertiary, fontSize = 10.sp)
+                            Text(it, color = TextTertiary, fontSize = 11.5.sp)
                         }
                     }
                     Canvas(Modifier.weight(1f).height(180.dp).semantics {
@@ -180,15 +180,15 @@ fun BatteryLevelChart(records: List<BatteryRecord>, modifier: Modifier = Modifie
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(start = 36.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(TimeFormatter.formatShortTime(first.timestamp), color = TextTertiary, fontSize = 10.sp)
+                    Text(TimeFormatter.formatShortTime(first.timestamp), color = TextTertiary, fontSize = 11.5.sp)
                     if (last.timestamp > first.timestamp) {
                         Text(TimeFormatter.formatShortTime(first.timestamp + (last.timestamp - first.timestamp) / 2),
-                            color = TextTertiary, fontSize = 10.sp)
-                        Text(TimeFormatter.formatShortTime(last.timestamp), color = TextTertiary, fontSize = 10.sp)
+                            color = TextTertiary, fontSize = 11.5.sp)
+                        Text(TimeFormatter.formatShortTime(last.timestamp), color = TextTertiary, fontSize = 11.5.sp)
                     }
                 }
                 if (records.size == 1) {
-                    Text("仅有一个采样点，继续记录后显示变化曲线", color = TextTertiary, fontSize = 11.sp)
+                    Text("仅有一个采样点，继续记录后显示变化曲线", color = TextTertiary, fontSize = 12.sp)
                 }
             }
         }
@@ -212,6 +212,6 @@ private fun ChartLegendSwatch(color: Color, label: String) {
                 .clip(CircleShape)
                 .background(color)
         )
-        Text(label, color = color, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
 }

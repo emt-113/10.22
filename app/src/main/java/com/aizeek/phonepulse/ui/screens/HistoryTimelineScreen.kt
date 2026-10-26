@@ -205,7 +205,7 @@ fun HistoryTimelineScreen(
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "累计时长", color = TextTertiary, fontSize = 11.sp)
+                        Text(text = "累计时长", color = TextTertiary, fontSize = 12.sp)
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = TimeFormatter.formatDurationCompact(totalDurationMs),
@@ -223,7 +223,7 @@ fun HistoryTimelineScreen(
                     )
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "记录段数", color = TextTertiary, fontSize = 11.sp)
+                        Text(text = "记录段数", color = TextTertiary, fontSize = 12.sp)
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "${filteredSessions.size} 段",
@@ -242,7 +242,7 @@ fun HistoryTimelineScreen(
 
                     val maxDuration = filteredSessions.maxOfOrNull { it.durationMs } ?: 0L
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "单次最长", color = TextTertiary, fontSize = 11.sp)
+                        Text(text = "单次最长", color = TextTertiary, fontSize = 12.sp)
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = TimeFormatter.formatDurationCompact(maxDuration),
@@ -260,7 +260,7 @@ fun HistoryTimelineScreen(
                     Text(
                         text = "提示：熄屏时系统偶尔自动亮一下（如通知提醒），会记成单独的小段，属正常现象。",
                         color = TextTertiary,
-                        fontSize = 10.sp,
+                        fontSize = 11.5.sp,
                         lineHeight = 14.sp
                     )
                 }
@@ -351,7 +351,7 @@ private fun TimelineSessionCard(
                         Text(
                             text = "${TimeFormatter.dateKey(session.startTime)} · ${TimeFormatter.formatTime(session.startTime)} 开始",
                             color = TextTertiary,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         )
                     }
                 }

@@ -149,7 +149,7 @@ fun LivePulseHeroCard(
                     Text(
                         text = if (isServiceRunning) "后台常驻守护" else "守护未开启",
                         color = if (isServiceRunning) NeonEmerald else AmberWarning,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -278,7 +278,7 @@ private fun IsolatedDigitalTimerDisplay(
         Text(
             text = "本次状态已持续",
             color = TextTertiary,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium
         )
     }

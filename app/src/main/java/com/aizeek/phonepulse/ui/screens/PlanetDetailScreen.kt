@@ -99,7 +99,7 @@ fun PlanetDetailScreen(onClose: () -> Unit) {
             Text(stageLabel(stage, streak), color = stageColor(stage), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Text(
                 "星球反映每日亮屏目标的达成情况，与电池健康无关。规则：最近 2 个有效天全部达成 → 运转；最近 3 个 → 闪耀。",
-                color = TextTertiary, fontSize = 11.sp
+                color = TextTertiary, fontSize = 12.sp
             )
         }
 

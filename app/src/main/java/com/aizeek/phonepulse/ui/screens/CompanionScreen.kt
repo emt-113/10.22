@@ -128,7 +128,7 @@ fun CompanionScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             state.showcase.forEach { id -> Column(Modifier.weight(1f).clickable { selectedItem = id }, horizontalAlignment = Alignment.CenterHorizontally) {
                                 ItemArtwork(id, Modifier.fillMaxWidth().aspectRatio(1f))
-                                Text(CompanionCatalog.find(id)?.name.orEmpty(), color = ForestMuted, fontSize = 10.sp)
+                                Text(CompanionCatalog.find(id)?.name.orEmpty(), color = ForestMuted, fontSize = 11.5.sp)
                             } }
                         }
                     } }

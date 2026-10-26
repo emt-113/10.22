@@ -103,7 +103,7 @@ fun AppUsageChart(timeline: AppUsageTimeline) {
             color = NeonCyan, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         Row {
             Column(Modifier.width(32.dp).height(160.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                listOf("60分", "30分", "0分").forEach { Text(it, color = TextSecondary, fontSize = 10.sp) }
+                listOf("60分", "30分", "0分").forEach { Text(it, color = TextSecondary, fontSize = 11.5.sp) }
             }
             Canvas(Modifier.weight(1f).height(160.dp).testTag("app_usage_hour_bars")
                 .semantics { contentDescription = "今日每小时使用柱状图，点击柱子查看对应小时用量" }
@@ -153,7 +153,7 @@ fun AppUsageChart(timeline: AppUsageTimeline) {
             Text("${TimeFormatter.formatShortTime(hour.startMs)}–${TimeFormatter.formatShortTime(hour.endMs)}：${TimeFormatter.formatDurationChinese(hour.durationMs)}",
                 color = TextPrimary, fontSize = 13.sp, modifier = Modifier.testTag("app_usage_selected_hour"))
         }
-        Text("使用时段 · 亮色为前台使用", color = TextSecondary, fontSize = 11.sp)
+        Text("使用时段 · 亮色为前台使用", color = TextSecondary, fontSize = 12.sp)
         Canvas(Modifier.fillMaxWidth().height(14.dp).testTag("app_usage_session_band")
             .semantics { contentDescription = "00:00 到查询时刻的前台使用时间带，共 ${timeline.sessions.size} 个时段" }) {
             drawRoundRect(BorderDark, cornerRadius = CornerRadius(3.dp.toPx()))
@@ -165,6 +165,6 @@ fun AppUsageChart(timeline: AppUsageTimeline) {
         }
         Text(if (timeline.sessions.isEmpty()) "系统暂未提供可还原的今日前台使用事件。"
             else "点击柱子查看用量。",
-            color = TextSecondary, fontSize = 11.sp)
+            color = TextSecondary, fontSize = 12.sp)
     }
 }

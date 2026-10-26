@@ -104,7 +104,7 @@ fun BatteryStatsCard(
                     Text(
                         text = "根据已记录电量变化统计，不等于全日完整耗电",
                         color = TextTertiary,
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 }
 
@@ -126,7 +126,7 @@ fun BatteryStatsCard(
                     Text(
                         text = batteryInfo.plugType,
                         color = batteryColor,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -178,7 +178,7 @@ fun BatteryStatsCard(
                         Text(
                             text = "系统电池状态: ${batteryInfo.health} · 电压: ${batteryInfo.voltageMv?.let { "${it}mV" } ?: "暂不可用"}",
                             color = TextSecondary,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -192,7 +192,7 @@ fun BatteryStatsCard(
                             Text(
                                 text = "电池温度: ${batteryInfo.temperature?.let { "${String.format(java.util.Locale.getDefault(), "%.1f", it)}°C" } ?: "暂不可用"}",
                                 color = TextTertiary,
-                                fontSize = 11.sp
+                                fontSize = 12.sp
                             )
                         }
                     }
@@ -246,7 +246,7 @@ fun BatteryStatsCard(
                 Text(
                     text = "亮屏 ${batteryInfo.totalScreenOnDrainPct} · 熄屏 ${batteryInfo.totalScreenOffDrainPct} · 未归属 $unattributed 个百分点",
                     color = TextTertiary,
-                    fontSize = 10.sp
+                    fontSize = 11.5.sp
                 )
             }
 
@@ -275,7 +275,7 @@ fun BatteryStatsCard(
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "亮屏电量下降率", color = TextSecondary, fontSize = 11.sp)
+                            Text(text = "亮屏电量下降率", color = TextSecondary, fontSize = 12.sp)
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
@@ -306,7 +306,7 @@ fun BatteryStatsCard(
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "熄屏电量下降率", color = TextSecondary, fontSize = 11.sp)
+                            Text(text = "熄屏电量下降率", color = TextSecondary, fontSize = 12.sp)
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(

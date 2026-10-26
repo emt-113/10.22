@@ -241,7 +241,7 @@ fun AppUsageScreen(
                         Text(
                             text = "${usageList.size} 款活跃应用",
                             color = TextTertiary,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         )
                     }
 
@@ -407,7 +407,7 @@ private fun AppUsageItemCard(
                         Text(
                             text = if (app.lastTimeUsedMs > 0) "最近打开: ${TimeFormatter.formatDateTime(app.lastTimeUsedMs)}" else app.packageName,
                             color = TextTertiary,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             maxLines = 1
                         )
                     }
@@ -487,7 +487,7 @@ private fun PermissionRequestBanner(
                 text = "请开启「使用情况访问权限」，以查看各应用使用时长。",
                 color = TextSecondary,
                 fontSize = 12.sp,
-                lineHeight = 16.sp
+                lineHeight = 18.sp
             )
             Spacer(modifier = Modifier.height(12.dp))
             Button(

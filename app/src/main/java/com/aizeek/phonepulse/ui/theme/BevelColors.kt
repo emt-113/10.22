@@ -15,7 +15,7 @@ val BevelCardBorder = Color(0xFFEAE8E0)
 
 val BevelTextPrimary = Color(0xFF242C33)
 val BevelTextSecondary = Color(0xFF5F6B76)
-val BevelTextTertiary = Color(0xFF9AA4AC)
+val BevelTextTertiary = Color(0xFF66707A)
 
 val BevelMint = Color(0xFF2EC5A2)
 val BevelCyan = Color(0xFF3FA6DD)

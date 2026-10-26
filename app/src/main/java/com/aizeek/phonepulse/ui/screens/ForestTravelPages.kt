@@ -72,7 +72,7 @@ internal fun LazyListScope.forestTravelPage(state: CompanionState, mailbox: Bool
 private fun FlowRewards(rewards: List<JourneyReward>) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         rewards.filter { it.kind in listOf(RewardKind.ITEM, RewardKind.FRIEND, RewardKind.MATERIAL) }.forEach {
-            Text(it.title, color = ForestMuted, fontSize = 11.sp, modifier = Modifier.background(ForestBackground, RoundedCornerShape(10.dp)).padding(8.dp))
+            Text(it.title, color = ForestMuted, fontSize = 12.sp, modifier = Modifier.background(ForestBackground, RoundedCornerShape(10.dp)).padding(8.dp))
         }
     }
 }
@@ -100,7 +100,7 @@ private fun BagContents(state: CompanionState, onSelect: (String) -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     ItemArtwork(item.id, Modifier.size(80.dp)); Text(item.name, color = ForestCream, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     val used = state.equipped[item.kind.name] == item.id || item.id in state.home.furniture.values
-                    Text(if (used) "正在使用" else "${item.kind.label} · ${state.inventory[item.id]}", color = if (used) ForestGold else ForestMuted, fontSize = 11.sp)
+                    Text(if (used) "正在使用" else "${item.kind.label} · ${state.inventory[item.id]}", color = if (used) ForestGold else ForestMuted, fontSize = 12.sp)
                 } }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             } }

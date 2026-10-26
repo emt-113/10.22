@@ -73,7 +73,7 @@ fun ActivityBarChart(
                     Text(
                         text = "24小时亮屏活跃度分布图",
                         color = BevelTextTertiary,
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 }
 
@@ -174,7 +174,7 @@ fun ActivityBarChart(
                     Text(
                         text = label,
                         color = BevelTextTertiary,
-                        fontSize = 10.sp
+                        fontSize = 11.5.sp
                     )
                 }
             }

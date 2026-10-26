@@ -94,7 +94,7 @@ fun PlanetCard(onClick: () -> Unit) {
                 )
                 Text(
                     if (budget != null) "今日亮屏 · 预算 ${budget} 分钟" else "今日亮屏分钟",
-                    color = TextSecondary, fontSize = 11.sp
+                    color = TextSecondary, fontSize = 12.sp
                 )
             }
         }
@@ -119,7 +119,7 @@ fun PlanetCard(onClick: () -> Unit) {
         if (!live.enabled) {
             Text(
                 "教练未开启：在下方「使用教练」中打开开关，星球将随每日目标成长。",
-                color = TextTertiary, fontSize = 11.sp
+                color = TextTertiary, fontSize = 12.sp
             )
         }
     }
@@ -128,7 +128,7 @@ fun PlanetCard(onClick: () -> Unit) {
 @Composable
 private fun MetricChip(label: String, value: String, valueColor: Color) {
     Column {
-        Text(label, color = TextTertiary, fontSize = 10.sp)
+        Text(label, color = TextTertiary, fontSize = 11.5.sp)
         Text(value, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }

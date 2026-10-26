@@ -36,4 +36,4 @@ val CoralRose = Color(0xFFE0705F)
 // Text — dark text on the light shell.
 val TextPrimary = Color(0xFF242C33)
 val TextSecondary = Color(0xFF5F6B76)
-val TextTertiary = Color(0xFF9AA4AC)
+val TextTertiary = Color(0xFF66707A)

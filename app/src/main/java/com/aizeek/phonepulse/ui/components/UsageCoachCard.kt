@@ -29,7 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -53,6 +55,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun UsageCoachCard() {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val settings = remember { UsageCoachSettings(context) }
     var enabled by remember { mutableStateOf(settings.current.enabled) }
     var budget by remember { mutableStateOf(settings.current.budgetMinutes?.toString() ?: "") }
@@ -110,13 +113,14 @@ fun UsageCoachCard() {
                 Text("使用教练", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
             Switch(checked = enabled, onCheckedChange = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 enabled = it
                 persist()
             })
         }
         Text(
             "预算 = 每天累计使用上限，连续 = 单次连续使用上限；用到预算 80% 预告一次，超限后每超 1 分钟催一次，息屏即止。",
-            color = TextTertiary, fontSize = 12.sp, lineHeight = 16.sp
+            color = TextTertiary, fontSize = 12.sp, lineHeight = 18.sp
         )
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -127,7 +131,7 @@ fun UsageCoachCard() {
                     persist() // auto-save on change
                 },
                 label = { Text("每日预算(分)") },
-                placeholder = { Text("留空关闭", color = TextTertiary, fontSize = 11.sp) },
+                placeholder = { Text("留空关闭", color = TextTertiary, fontSize = 12.sp) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 modifier = Modifier.weight(1f),
@@ -140,7 +144,7 @@ fun UsageCoachCard() {
                     persist()
                 },
                 label = { Text("连续上限(分)") },
-                placeholder = { Text("留空关闭", color = TextTertiary, fontSize = 11.sp) },
+                placeholder = { Text("留空关闭", color = TextTertiary, fontSize = 12.sp) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 modifier = Modifier.weight(1f),
@@ -177,7 +181,7 @@ fun UsageCoachCard() {
             AnimatedVisibility(visible = savedTick) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = NeonEmerald, modifier = Modifier.size(13.dp))
-                    Text("已自动保存，立即生效", color = NeonEmerald, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    Text("已自动保存，立即生效", color = NeonEmerald, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -188,7 +192,7 @@ fun UsageCoachCard() {
                 .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
             context.startActivity(intent)
         }) {
-            Text("收不到悬浮提醒或没声音？点此开启系统通知权限", color = TextSecondary, fontSize = 11.sp)
+            Text("收不到悬浮提醒或没声音？点此开启系统通知权限", color = TextSecondary, fontSize = 12.sp)
         }
     }
 }

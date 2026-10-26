@@ -441,8 +441,8 @@ internal fun KeepAliveItemCard(
                     Text(
                         text = subtitle,
                         color = TextTertiary,
-                        fontSize = 11.sp,
-                        lineHeight = 15.sp
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
                     )
                 }
             }
@@ -499,6 +499,6 @@ private fun VendorTipItem(vendor: String, tip: String) {
     Column(modifier = Modifier.padding(vertical = 6.dp)) {
         Text(text = vendor, color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(2.dp))
-        Text(text = tip, color = TextSecondary, fontSize = 11.sp, lineHeight = 16.sp)
+        Text(text = tip, color = TextSecondary, fontSize = 12.sp, lineHeight = 18.sp)
     }
 }

@@ -1,12 +1,22 @@
 package com.aizeek.phonepulse.ui
 
 import android.app.Activity
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -77,6 +87,8 @@ import com.aizeek.phonepulse.ui.screens.SettingsScreen
 import com.aizeek.phonepulse.ui.theme.BevelBlue
 import com.aizeek.phonepulse.ui.theme.BevelCard
 import com.aizeek.phonepulse.ui.theme.BevelCardBorder
+import com.aizeek.phonepulse.ui.theme.BevelEaseIn
+import com.aizeek.phonepulse.ui.theme.BevelEaseOut
 import com.aizeek.phonepulse.ui.theme.BevelPageBottom
 import com.aizeek.phonepulse.ui.theme.BevelTextTertiary
 import com.aizeek.phonepulse.ui.theme.BorderDark
@@ -346,7 +358,7 @@ fun MainScreen(
                         label = {
                             Text(
                                 text = tab.title,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -404,7 +416,8 @@ fun MainScreen(
                                     monitor = batteryMonitor,
                                     lastScreenOffDurationMs = lastScreenOffDurationMs,
                                     onClickPlanet = { showPlanetDetail = true },
-                                    onOpenSettings = { currentTab = ScreenTab.SETTINGS }
+                                    onOpenSettings = { currentTab = ScreenTab.SETTINGS },
+                                    onOpenCoach = { currentTab = ScreenTab.BATTERY }
                                 )
                             }
                         )
@@ -468,10 +481,58 @@ fun MainScreen(
                     }
                 }
             }
-            if (showPlanetDetail) {
-                com.aizeek.phonepulse.ui.screens.PlanetDetailScreen(
-                    onClose = { showPlanetDetail = false }
+            // Planet detail as a bottom sheet: the scrim fades, the panel slides
+            // with the house curve, and the grab handle marks it as dismissible.
+            AnimatedVisibility(
+                visible = showPlanetDetail,
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(200))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x52000000))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { showPlanetDetail = false }
                 )
+            }
+            AnimatedVisibility(
+                visible = showPlanetDetail,
+                enter = slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(420, easing = BevelEaseOut)
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = tween(300, easing = BevelEaseIn)
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.92f)
+                        .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                        .background(BevelPageBottom)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 42.dp, height = 4.dp)
+                                .clip(RoundedCornerShape(99))
+                                .background(BevelTextTertiary.copy(alpha = 0.28f))
+                        )
+                    }
+                    com.aizeek.phonepulse.ui.screens.PlanetDetailScreen(
+                        onClose = { showPlanetDetail = false }
+                    )
+                }
             }
         }
     }
